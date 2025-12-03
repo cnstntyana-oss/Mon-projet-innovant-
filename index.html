@@ -1,0 +1,2485 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Titre mis à jour dynamiquement -->
+    <title data-translate-key="app_title">Dustbuster IA v2.4 - Capteurs Diversifiés</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* --- Styles --- */
+        :root { --primary: #2563eb; --primary-dark: #1d4ed8; --secondary: #10b981; --danger: #ef4444; --warning: #f59e0b; }
+        body { font-family: 'Inter', sans-serif; }
+        .card { transition: all 0.3s ease; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 12px; overflow: hidden; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); }
+        .clickable-card { cursor: pointer; }
+        .status-indicator { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .status-indicator.in-modal { width: 12px; height: 12px; }
+        .status-normal { background-color: var(--secondary); }
+        .status-warning { background-color: var(--warning); }
+        .status-danger { background-color: var(--danger); animation: pulse 1.5s infinite; }
+        .status-off { background-color: #9ca3af; }
+        .status-error { background-color: var(--danger); }
+        .status-recent { background-color: #60a5fa; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .gauge-container { position: relative; width: 100%; max-width: 250px; margin: 0 auto; }
+        .gauge { width: 100%; height: 0; padding-bottom: 50%; position: relative; border-top-left-radius: 100% 200%; border-top-right-radius: 100% 200%; overflow: hidden; background: #e5e7eb; }
+        .gauge-fill { position: absolute; top: 100%; left: 0; width: 100%; height: 100%; background: var(--secondary); transform-origin: center top; transform: rotate(0turn); transition: transform 0.5s ease-out, background 0.5s ease; }
+        .gauge-cover { width: 75%; height: 150%; background: white; border-radius: 50%; position: absolute; top: 25%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; color: #1f2937; }
+        .gauge-value { font-size: 1.5rem; font-weight: 700; }
+        .gauge-label { font-size: 0.75rem; color: #6b7280; margin-top: 4px; }
+        .mobile-menu { transform: translateX(-100%); transition: transform 0.3s ease; }
+        .mobile-menu.open { transform: translateX(0); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .progress-bar { transition: width 0.5s ease; }
+        .btn-active { background-color: var(--primary); color: white; }
+        .btn-inactive { background-color: #e5e7eb; color: #374151; }
+        .controls-disabled { opacity: 0.5; pointer-events: none; }
+        select { appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7em top 50%; background-size: .65em auto; }
+        .label { /* Applied via JS */ }
+        .input { /* Applied via JS */ }
+        .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.2s ease; }
+        .btn-primary { background-color: var(--primary); color: white; } .btn-primary:hover { background-color: var(--primary-dark); }
+        .btn-secondary { background-color: #e5e7eb; color: #374151; border: 1px solid #d1d5db; } .btn-secondary:hover { background-color: #d1d5db; }
+        .btn-danger { background-color: var(--danger); color: white; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.75rem; line-height: 1rem; }
+        .btn-edit { background-color: var(--primary); color: white; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.75rem; line-height: 1rem; }
+        .btn-add { background-color: var(--secondary); color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; display: inline-flex; align-items: center; }
+        .btn-lang { padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 0.25rem; border: 1px solid transparent; }
+        .btn-lang.active { background-color: var(--primary); color: white; border-color: var(--primary-dark); }
+        .btn-lang:not(.active) { background-color: #e5e7eb; color: #374151; border-color: #d1d5db; }
+
+        /* Styles pour la fenêtre modale */
+        #alertModal.open #alertModalBackdrop { opacity: 0.4; }
+        #alertModal.open #alertModalContent { opacity: 1; transform: translateY(0) scale(1); }
+
+        /* Style pour le nom de la zone affichée */
+        #currentZoneDisplay {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #4b5563; /* gray-600 */
+            background-color: #f3f4f6; /* gray-100 */
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem; /* rounded-md */
+            border: 1px solid #d1d5db; /* gray-300 */
+            min-width: 100px; /* Pour éviter les sauts de taille */
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <audio id="alarmSound" src="https://cdn.jsdelivr.net/gh/scottschiller/SoundManager2@master/demo/audio/warning-beep.mp3" preload="auto"></audio>
+
+    <!-- Mobile Menu Button -->
+    <button id="mobileMenuButton" class="md:hidden fixed top-4 left-4 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg">
+        <i class="fas fa-bars text-lg"></i>
+    </button>
+
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="mobile-menu fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-xl md:hidden">
+        <div class="p-5 border-b border-gray-200 flex items-center justify-between">
+            <h1 class="text-xl font-bold text-blue-600 flex items-center"><i class="fas fa-wind mr-2"></i> Dustbuster IA</h1>
+            <button id="closeMobileMenu" class="text-gray-500"><i class="fas fa-times"></i></button>
+        </div>
+        <nav class="p-4">
+            <a href="#" class="tab-link block py-3 px-4 rounded-lg bg-blue-50 text-blue-600 mb-2 font-medium" data-tab="dashboard" data-translate-key="tab_dashboard"><i class="fas fa-tachometer-alt mr-3"></i> Tableau de bord</a>
+            <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 mb-2 font-medium" data-tab="zones" data-translate-key="tab_zones"><i class="fas fa-map-marked-alt mr-3"></i> Zones</a>
+            <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 mb-2 font-medium" data-tab="devices" data-translate-key="tab_devices"><i class="fas fa-server mr-3"></i> Appareils</a>
+            <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 mb-2 font-medium" data-tab="activeDevices" data-translate-key="tab_active_devices"><i class="fas fa-link mr-3"></i> Appareils Connectés</a>
+            <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 mb-2 font-medium" data-tab="alerts" data-translate-key="tab_alerts"><i class="fas fa-bell mr-3"></i> Alertes</a>
+            <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 mb-2 font-medium" data-tab="history" data-translate-key="tab_history"><i class="fas fa-chart-line mr-3"></i> Historique</a>
+            <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 mb-2 font-medium" data-tab="settings" data-translate-key="tab_settings"><i class="fas fa-cog mr-3"></i> Paramètres</a>
+            <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 mb-2 font-medium" data-tab="users" data-translate-key="tab_users"><i class="fas fa-users mr-3"></i> Utilisateurs</a>
+        </nav>
+        <!-- User Profile & Logout (Mobile) -->
+        <div class="p-4 border-t border-gray-200 absolute bottom-0 w-full">
+            <div class="flex items-center">
+                <div class="w-9 h-9 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center flex-shrink-0"><i class="fas fa-user text-lg"></i></div>
+                <div class="ml-3"><p id="profileNameMobile" class="text-sm font-medium text-gray-800">Admin</p><p id="profileEmailMobile" class="text-xs text-gray-500">admin@dustbuster.com</p></div>
+            </div>
+            <button class="mt-4 w-full py-2 px-4 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center justify-center" data-translate-key="button_logout"><i class="fas fa-sign-out-alt mr-2"></i> Déconnexion</button>
+        </div>
+    </div>
+
+    <!-- Overlay -->
+    <div id="overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30"></div>
+
+
+    <!-- Main Layout -->
+    <div class="flex min-h-screen">
+        <!-- Sidebar (Desktop) -->
+         <div class="hidden md:flex md:flex-shrink-0">
+            <div class="flex flex-col w-64 border-r border-gray-200 bg-white">
+                <div class="h-20 flex items-center px-6 border-b border-gray-200"><h1 class="text-xl font-bold text-blue-600 flex items-center"><i class="fas fa-wind mr-2"></i> Dustbuster IA</h1></div>
+                <nav class="flex-1 p-4 space-y-1">
+                    <a href="#" class="tab-link block py-3 px-4 rounded-lg bg-blue-50 text-blue-600 font-medium" data-tab="dashboard" data-translate-key="tab_dashboard"><i class="fas fa-tachometer-alt mr-3"></i> Tableau de bord</a>
+                    <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 font-medium" data-tab="zones" data-translate-key="tab_zones"><i class="fas fa-map-marked-alt mr-3"></i> Zones</a>
+                    <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 font-medium" data-tab="devices" data-translate-key="tab_devices"><i class="fas fa-server mr-3"></i> Appareils</a>
+                    <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 font-medium" data-tab="activeDevices" data-translate-key="tab_active_devices"><i class="fas fa-link mr-3"></i> Appareils Connectés</a>
+                    <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 font-medium" data-tab="alerts" data-translate-key="tab_alerts"><i class="fas fa-bell mr-3"></i> Alertes</a>
+                    <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 font-medium" data-tab="history" data-translate-key="tab_history"><i class="fas fa-chart-line mr-3"></i> Historique</a>
+                    <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 font-medium" data-tab="settings" data-translate-key="tab_settings"><i class="fas fa-cog mr-3"></i> Paramètres</a>
+                    <a href="#" class="tab-link block py-3 px-4 rounded-lg text-gray-700 hover:bg-blue-50 font-medium" data-tab="users" data-translate-key="tab_users"><i class="fas fa-users mr-3"></i> Utilisateurs</a>
+                </nav>
+                <!-- User Profile & Logout (Desktop) -->
+                <div class="p-4 border-t border-gray-200">
+                    <div class="flex items-center">
+                        <div class="w-9 h-9 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center flex-shrink-0"><i class="fas fa-user text-lg"></i></div>
+                        <div class="ml-3"><p id="profileNameSidebar" class="text-sm font-medium text-gray-800">Admin</p><p id="profileEmailSidebar" class="text-xs text-gray-500">admin@dustbuster.com</p></div>
+                    </div>
+                    <button class="mt-4 w-full py-2 px-4 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center justify-center" data-translate-key="button_logout"><i class="fas fa-sign-out-alt mr-2"></i> Déconnexion</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Navigation -->
+             <header class="bg-white shadow-sm">
+                <div class="flex justify-between items-center px-6 py-4">
+                    <h2 id="pageTitle" class="text-xl font-semibold text-gray-800" data-translate-key="tab_dashboard">Tableau de bord</h2>
+                    <div class="flex items-center space-x-4">
+                        <!-- Language Selector -->
+                        <div class="flex space-x-1">
+                            <button id="langBtn-fr" class="btn-lang active" onclick="setLanguage('fr')">FR</button>
+                            <button id="langBtn-en" class="btn-lang" onclick="setLanguage('en')">EN</button>
+                        </div>
+                        <!-- Notifications -->
+                        <div class="relative">
+                            <button id="notificationsButton" class="text-gray-500 hover:text-gray-700 relative" title="Notifications">
+                                <i class="fas fa-bell text-xl"></i>
+                                <span id="notificationBadge" class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full hidden"></span>
+                            </button>
+                            <div id="notificationsDropdown" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-md shadow-lg py-1 z-50">
+                                <div class="px-4 py-2 border-b border-gray-200"><p class="text-sm font-medium" data-translate-key="notifications_title">Notifications</p></div>
+                                <div id="notificationList" class="max-h-60 overflow-y-auto"><p class="px-4 py-3 text-sm text-gray-500" data-translate-key="notifications_none">Aucune nouvelle notification.</p></div>
+                                <div class="px-4 py-2 border-t border-gray-200"><a href="#" class="text-xs text-blue-600 hover:text-blue-800" onclick="showTab('alerts'); return false;" data-translate-key="notifications_see_all">Voir toutes les alertes</a></div>
+                            </div>
+                        </div>
+                        <!-- User Profile (Desktop) -->
+                        <div class="hidden md:flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center flex-shrink-0"><i class="fas fa-user"></i></div>
+                            <span id="profileNameNav" class="ml-2 text-sm font-medium text-gray-700">Admin</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
+                <!-- Dashboard Tab -->
+                <div id="dashboard" class="tab-content active">
+                    <!-- Status Overview -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div class="card bg-white p-5 clickable-card" onclick="showTab('zones')">
+                            <div class="flex items-center justify-between">
+                                <div><p class="text-sm font-medium text-gray-500" data-translate-key="overview_active_zones">Zones actives</p><p id="overviewZonesCount" class="text-2xl font-bold text-gray-800">0</p></div>
+                                <div class="p-3 rounded-full bg-blue-100 text-blue-600"><i class="fas fa-map-marked-alt text-xl"></i></div>
+                            </div>
+                        </div>
+                        <div class="card bg-white p-5 clickable-card" onclick="showTab('devices')">
+                            <div class="flex items-center justify-between">
+                                <div><p class="text-sm font-medium text-gray-500" data-translate-key="overview_active_sensors">Capteurs Actifs</p><p id="overviewSensorsStatus" class="text-2xl font-bold text-gray-800">0%</p><p id="overviewSensorsIndicator" class="text-xs text-gray-500 mt-1"><span class="status-indicator status-off"></span> 0/0</p></div>
+                                <div class="p-3 rounded-full bg-green-100 text-green-600"><i class="fas fa-sensor text-xl"></i></div>
+                            </div>
+                        </div>
+                        <div class="card bg-white p-5 clickable-card" onclick="showTab('devices')">
+                            <div class="flex items-center justify-between">
+                                <div><p class="text-sm font-medium text-gray-500" data-translate-key="overview_connected_vacuums">Aspirateurs Connectés</p><p id="overviewVacuumsStatus" class="text-2xl font-bold text-gray-800">0%</p><p id="overviewVacuumsIndicator" class="text-xs text-gray-500 mt-1"><span class="status-indicator status-off"></span> 0/0</p></div>
+                                <div class="p-3 rounded-full bg-purple-100 text-purple-600"><i class="fas fa-fan text-xl"></i></div>
+                            </div>
+                        </div>
+                        <div class="card bg-white p-5 clickable-card" onclick="showTab('alerts')">
+                            <div class="flex items-center justify-between">
+                                <div><p class="text-sm font-medium text-gray-500" data-translate-key="overview_alerts_24h">Alertes (24h)</p><p id="overviewAlertsCount" class="text-2xl font-bold text-gray-800">0</p><p id="overviewAlertsIndicator" class="text-xs text-gray-500 mt-1"><span class="status-indicator status-normal"></span> <span data-translate-key="overview_alerts_none_critical">Aucune critique</span></p></div>
+                                <div class="p-3 rounded-full bg-red-100 text-red-600"><i class="fas fa-exclamation-triangle text-xl"></i></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Dashboard Widget -->
+                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+                        <!-- Dust Level Monitoring -->
+                        <div class="lg:col-span-2 card bg-white p-5">
+                            <div class="flex flex-wrap justify-between items-center mb-6 gap-2">
+                                <div class="flex items-center space-x-3">
+                                    <h3 class="text-lg font-semibold text-gray-800" data-translate-key="monitoring_title">Surveillance en temps réel</h3>
+                                    <span id="currentZoneDisplay" class="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-md border border-gray-300" data-translate-key="loading">Chargement...</span>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button id="autoModeBtn" class="px-4 py-1 rounded-md text-sm font-medium btn-active" data-translate-key="button_auto_mode">Automatique</button>
+                                    <button id="manualModeBtn" class="px-4 py-1 rounded-md text-sm font-medium btn-inactive" data-translate-key="button_manual_mode">Manuel</button>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                                <!-- Gauge -->
+                                <div class="gauge-container">
+                                    <div class="gauge"><div class="gauge-fill" id="dustLevelFill"></div><div class="gauge-cover"><span class="gauge-value" id="dustLevelValue">--</span><span class="gauge-label">mg/m³</span></div></div>
+                                    <div class="flex justify-between text-xs text-gray-500 px-2 mt-2"><span>0</span><span id="gaugeThresholdLabel" class="text-yellow-500 font-medium" data-translate-key="gauge_threshold_label">Seuil: --</span><span id="gaugeMaxLabel">--</span></div>
+                                </div>
+                                <!-- Vacuum Control & Status -->
+                                <div class="flex-1 w-full">
+                                    <div class="flex justify-between items-center mb-2"><span class="text-sm font-medium text-gray-700" data-translate-key="monitoring_vacuum_control">Contrôle Aspirateur</span><span id="vacuumStatusLabel" class="text-sm font-medium text-gray-500">--</span></div>
+                                    <div class="bg-gray-200 rounded-full h-3 mb-1"><div id="vacuumPowerBar" class="bg-blue-600 h-3 rounded-full progress-bar" style="width: 0%"></div></div>
+                                    <div class="flex justify-between text-xs text-gray-500"><span>Arrêt</span><span id="vacuumPowerValue">0%</span><span>100%</span></div>
+                                    <!-- System Status -->
+                                    <div class="mt-6"><div class="flex justify-between items-center mb-2"><span class="text-sm font-medium text-gray-700" data-translate-key="monitoring_zone_status">Statut Zone Sélectionnée</span></div><div class="flex items-center space-x-4"><div class="flex items-center"><span id="sensorStatusIndicator" class="status-indicator status-off"></span><span id="sensorStatusText" class="text-sm" data-translate-key="monitoring_sensors">Capteurs</span></div><div class="flex items-center"><span id="vacuumStatusIndicator" class="status-indicator status-off"></span><span id="vacuumConnText" class="text-sm" data-translate-key="monitoring_vacuum">Aspirateur</span></div></div></div>
+                                    <!-- Manual Controls -->
+                                    <div id="manualControlsContainer" class="mt-4 controls-disabled">
+                                        <div id="autoModeInfo" class="text-xs text-gray-500 mb-2" data-translate-key="manual_controls_auto_info">Le système contrôle automatiquement l'aspirateur.</div>
+                                        <div id="manualModeInfo" class="text-xs text-gray-500 mb-2 hidden" data-translate-key="manual_controls_manual_info">Démarrez un cycle de nettoyage manuel.</div>
+                                        <div id="manualControls">
+                                            <button id="manualCleanBtn" class="btn btn-secondary w-full" disabled>
+                                                <i class="fas fa-play mr-2"></i> <span data-translate-key="button_manual_clean_unavailable">Indisponible</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Zones List (Dashboard) -->
+                        <div class="card bg-white p-5">
+                            <div class="flex justify-between items-center mb-6"><h3 class="text-lg font-semibold text-gray-800" data-translate-key="dashboard_zone_list_title">Aperçu Zones</h3><button class="text-blue-600 text-sm font-medium" onclick="showTab('zones'); return false;" data-translate-key="button_manage">Gérer</button></div>
+                            <div id="zoneListContainer" class="space-y-3 max-h-80 overflow-y-auto"><p class="text-sm text-gray-500" data-translate-key="loading">Chargement...</p></div>
+                        </div>
+                    </div>
+
+                    <!-- AI Insights Section -->
+                     <div class="card bg-white p-5 mb-6">
+                        <div class="flex items-center mb-4">
+                            <div class="p-2 rounded-full bg-purple-100 text-purple-600 mr-3"><i class="fas fa-lightbulb"></i></div>
+                            <h3 class="text-lg font-semibold text-gray-800" data-translate-key="ai_insights_title">Insights IA</h3>
+                        </div>
+                        <div id="aiInsightsContainer" class="space-y-2 text-sm text-gray-600">
+                            <p data-translate-key="ai_insights_checking">Analyse de l'état des équipements...</p> <!-- Placeholder initial -->
+                        </div>
+                    </div>
+
+                    <!-- Recent Alerts (Dashboard) -->
+                     <div class="card bg-white p-5">
+                         <div class="flex justify-between items-center mb-6"><h3 class="text-lg font-semibold text-gray-800" data-translate-key="dashboard_recent_alerts_title">Alertes Récentes</h3><button class="text-blue-600 text-sm font-medium" onclick="showTab('alerts'); return false;" data-translate-key="button_see_all">Voir tout</button></div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-translate-key="table_header_zone">Zone</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-translate-key="table_header_level">Niveau</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-translate-key="table_header_time">Heure</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-translate-key="table_header_action">Action</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-translate-key="table_header_status">Statut</th></tr></thead>
+                                <tbody id="alertsTableBody" class="bg-white divide-y divide-gray-200"><tr id="noAlertsRow"><td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500" data-translate-key="dashboard_no_recent_alerts">Aucune alerte récente</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zones Tab -->
+                <div id="zones" class="tab-content">
+                    <div class="flex justify-between items-center mb-6">
+                         <h3 class="text-xl font-semibold text-gray-800" data-translate-key="zone_management_title">Gestion des Zones</h3>
+                         <button class="btn-add" onclick="addZone()"><i class="fas fa-plus mr-2"></i> <span data-translate-key="button_add_zone">Ajouter Zone</span></button>
+                    </div>
+                    <div id="zoneManagementContainer" class="space-y-6">
+                        <p class="text-gray-600" data-translate-key="loading">Chargement des zones...</p>
+                    </div>
+                </div>
+
+                <!-- Devices Tab -->
+                <div id="devices" class="tab-content">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-6" data-translate-key="device_management_title">Gestion des Appareils</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Sensors -->
+                        <div class="card bg-white p-5">
+                            <div class="flex justify-between items-center mb-4"><h4 class="text-lg font-semibold text-gray-800" data-translate-key="devices_sensors_title">Capteurs</h4><button class="btn-add text-xs" onclick="addDevice('sensor')"><i class="fas fa-plus mr-1"></i> <span data-translate-key="button_add">Ajouter</span></button></div>
+                            <div id="sensorListContainer" class="space-y-3">
+                                <p class="text-sm text-gray-500" data-translate-key="loading">Chargement...</p>
+                            </div>
+                        </div>
+                        <!-- Vacuums -->
+                        <div class="card bg-white p-5">
+                            <div class="flex justify-between items-center mb-4"><h4 class="text-lg font-semibold text-gray-800" data-translate-key="devices_vacuums_title">Aspirateurs</h4><button class="btn-add text-xs" onclick="addDevice('vacuum')"><i class="fas fa-plus mr-1"></i> <span data-translate-key="button_add">Ajouter</span></button></div>
+                            <div id="vacuumListContainer" class="space-y-3">
+                                <p class="text-sm text-gray-500" data-translate-key="loading">Chargement...</p>
+                            </div>
+                        </div>
+                    </div>
+                      <div class="mt-6 card bg-white p-5">
+                         <h4 class="text-lg font-semibold text-gray-800 mb-4" data-translate-key="devices_site_stats_title">Statistiques par Site</h4>
+                         <div id="siteStatsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <p class="text-sm text-gray-500" data-translate-key="loading">Chargement...</p>
+                         </div>
+                     </div>
+                </div>
+
+                <!-- Active Devices Tab -->
+                <div id="activeDevices" class="tab-content">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-6" data-translate-key="active_devices_title">Statut des Appareils Actifs</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Operational Sensors -->
+                        <div class="card bg-white p-5">
+                            <div class="flex items-center mb-4">
+                                <div class="p-2 rounded-full bg-green-100 text-green-600 mr-3"><i class="fas fa-sensor"></i></div>
+                                <h4 class="text-lg font-semibold text-gray-800" data-translate-key="active_devices_operational_sensors">Capteurs Opérationnels (Statut: Normal)</h4>
+                            </div>
+                            <div id="activeSensorList" class="space-y-3 max-h-96 overflow-y-auto">
+                                <p class="text-sm text-gray-500" data-translate-key="loading">Chargement...</p>
+                            </div>
+                        </div>
+                        <!-- Connected Vacuums -->
+                        <div class="card bg-white p-5">
+                             <div class="flex items-center mb-4">
+                                <div class="p-2 rounded-full bg-purple-100 text-purple-600 mr-3"><i class="fas fa-plug"></i></div>
+                                <h4 class="text-lg font-semibold text-gray-800" data-translate-key="active_devices_connected_vacuums">Aspirateurs Connectés</h4>
+                            </div>
+                            <div id="activeVacuumList" class="space-y-3 max-h-96 overflow-y-auto">
+                                <p class="text-sm text-gray-500" data-translate-key="loading">Chargement...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts Tab -->
+                 <div id="alerts" class="tab-content">
+                    <div class="card bg-white p-5 mb-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-6" data-translate-key="alert_management_title">Gestion des Alertes</h3>
+                        <div id="alertCardsContainer" class="space-y-4"><p class="text-sm text-gray-500" data-translate-key="loading">Chargement...</p></div>
+                        <div id="noAlertsMessage" class="mt-6 text-center text-gray-500 hidden" data-translate-key="alert_no_alerts">Aucune alerte à afficher.</div>
+                    </div>
+                </div>
+
+                <!-- History Tab -->
+                 <div id="history" class="tab-content">
+                     <div class="card bg-white p-5 mb-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-semibold text-gray-800" data-translate-key="history_title">Historique des Données</h3>
+                            <button class="btn btn-secondary" onclick="generateHistoryReport()"><i class="fas fa-file-alt mr-2"></i> <span data-translate-key="button_generate_report">Générer Rapport</span></button>
+                        </div>
+                        <!-- Chart Container -->
+                        <div id="historyChartContainer" class="mb-8" style="height: 300px;">
+                            <canvas id="historyChartCanvas"></canvas>
+                        </div>
+
+                         <div class="overflow-x-auto">
+                             <table class="min-w-full divide-y divide-gray-200">
+                                  <thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-translate-key="history_header_datetime">Date/Heure</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-translate-key="history_header_zone">Zone</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-translate-key="history_header_level">Niveau</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-translate-key="history_header_action">Action</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-translate-key="history_header_zone_status">Statut Zone</th></tr></thead>
+                                  <tbody id="historyTableBody"><tr id="noHistoryRow"><td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500" data-translate-key="history_no_history">Aucun historique</td></tr></tbody>
+                             </table>
+                         </div>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                 <div id="settings" class="tab-content">
+                     <div class="card bg-white p-5 mb-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-6" data-translate-key="settings_title">Paramètres du Système</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- General Config -->
+                            <div><h4 class="text-md font-medium text-gray-700 mb-4" data-translate-key="settings_general_config">Configuration Générale</h4><div class="space-y-4"><div><label for="settingWarningThreshold" class="label" data-translate-key="settings_warning_threshold">Seuil d'alerte (mg/m³)</label><input type="number" id="settingWarningThreshold" step="0.01" class="input" value="0.5"></div><div><label for="settingCriticalThreshold" class="label" data-translate-key="settings_critical_threshold">Seuil critique (mg/m³)</label><input type="number" id="settingCriticalThreshold" step="0.01" class="input" value="0.7"></div><div><label for="settingMaxDust" class="label" data-translate-key="settings_max_dust_gauge">Niveau Max Jauge (mg/m³)</label><input type="number" id="settingMaxDust" step="0.1" class="input" value="1.0"></div><div><label for="settingCarouselInterval" class="label" data-translate-key="settings_carousel_interval">Intervalle Carrousel (secondes)</label><input type="number" id="settingCarouselInterval" step="1" min="1" class="input" value="5"></div></div></div>
+                            <!-- Notifications -->
+                            <div><h4 class="text-md font-medium text-gray-700 mb-4" data-translate-key="settings_notifications">Notifications</h4><p class="text-sm text-gray-500" data-translate-key="settings_notifications_placeholder">Options de configuration des notifications (email, push, etc.) à implémenter.</p></div>
+                        </div>
+                        <div class="mt-8 flex justify-end"><button class="btn btn-secondary mr-3" onclick="loadSettings()" data-translate-key="button_cancel">Annuler</button><button class="btn btn-primary" onclick="saveSettings()" data-translate-key="button_save">Enregistrer</button></div>
+                    </div>
+                </div>
+
+                <!-- Users Tab -->
+                <div id="users" class="tab-content">
+                    <div class="card bg-white p-5">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-semibold text-gray-800" data-translate-key="user_management_title">Gestion des Utilisateurs</h3>
+                            <button class="btn-add" onclick="addUser()"><i class="fas fa-user-plus mr-2"></i> <span data-translate-key="button_add_user">Ajouter Utilisateur</span></button>
+                        </div>
+                        <div id="userListContainer" class="overflow-x-auto">
+                            <!-- User list will be rendered here by JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Alert Details Modal -->
+    <div id="alertModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div id="alertModalBackdrop" class="fixed inset-0 bg-black opacity-0 transition-opacity duration-300"></div>
+        <div id="alertModalContent" class="bg-white rounded-lg shadow-xl w-full max-w-lg transform transition-all duration-300 scale-95 opacity-0 z-10">
+            <!-- Le contenu de la modale sera injecté ici par JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        let config = {
+            WARNING_THRESHOLD: 0.5,
+            CRITICAL_THRESHOLD: 0.7,
+            MAX_DUST_LEVEL: 1.0,
+            SIMULATION_INTERVAL: 3000,
+            VACUUM_ACTIVATION_POWER: 75,
+            VACUUM_CRITICAL_POWER: 100,
+            AI_INSIGHT_INTERVAL: 15000,
+            RECENTLY_CLEANED_THRESHOLD: 5 * 60 * 1000,
+            CAROUSEL_INTERVAL_SECONDS: 5
+        };
+
+        // --- Traductions ---
+        const translations = {
+            fr: {
+                app_title: "Dustbuster IA v2.4 - Capteurs Diversifiés",
+                tab_dashboard: "Tableau de bord",
+                tab_zones: "Zones",
+                tab_devices: "Appareils",
+                tab_active_devices: "Appareils Connectés",
+                tab_alerts: "Alertes",
+                tab_history: "Historique",
+                tab_settings: "Paramètres",
+                tab_users: "Utilisateurs",
+                button_logout: "Déconnexion",
+                notifications_title: "Notifications",
+                notifications_none: "Aucune nouvelle notification.",
+                notifications_see_all: "Voir toutes les alertes",
+                overview_active_zones: "Zones actives",
+                overview_active_sensors: "Capteurs Actifs",
+                overview_connected_vacuums: "Aspirateurs Connectés",
+                overview_alerts_24h: "Alertes (24h)",
+                overview_alerts_none_critical: "Aucune critique",
+                overview_alerts_critical_single: "critique",
+                overview_alerts_critical_plural: "critiques",
+                monitoring_title: "Surveillance en temps réel",
+                loading: "Chargement...",
+                button_auto_mode: "Automatique",
+                button_manual_mode: "Manuel",
+                gauge_threshold_label: "Seuil:",
+                monitoring_vacuum_control: "Contrôle Aspirateur",
+                monitoring_zone_status: "Statut Zone Sélectionnée",
+                monitoring_sensors: "Capteurs",
+                monitoring_vacuum: "Aspirateur",
+                manual_controls_auto_info: "Le système contrôle automatiquement l'aspirateur.",
+                manual_controls_manual_info: "Démarrez un cycle de nettoyage manuel.",
+                button_start_manual_clean: "Démarrer Nettoyage Manuel",
+                button_manual_clean_in_progress: "Nettoyage en cours...",
+                button_manual_clean_unavailable: "Indisponible (Auto/Erreur)",
+                dashboard_zone_list_title: "Aperçu Zones",
+                button_manage: "Gérer",
+                ai_insights_title: "Insights IA",
+                ai_insights_checking: "Analyse de l'état des équipements...",
+                ai_insight_sensor_error: "⚠️ Capteur {sensorId} dans la zone {zoneName} signale une erreur. Vérification nécessaire.",
+                ai_insight_sensor_maintenance: "🔧 Capteur {sensorId} dans la zone {zoneName} est en maintenance.",
+                ai_insight_vacuum_disconnected: "🔌 Aspirateur {vacuumId} dans la zone {zoneName} est déconnecté. Vérifier la connexion.",
+                ai_insight_system_ok: "✅ Tous les systèmes fonctionnent nominalement.",
+                dashboard_recent_alerts_title: "Alertes Récentes",
+                button_see_all: "Voir tout",
+                table_header_zone: "Zone",
+                table_header_level: "Niveau",
+                table_header_time: "Heure",
+                table_header_action: "Action",
+                table_header_status: "Statut",
+                dashboard_no_recent_alerts: "Aucune alerte récente",
+                zone_management_title: "Gestion des Zones",
+                button_add_zone: "Ajouter Zone",
+                device_management_title: "Gestion des Appareils",
+                devices_sensors_title: "Capteurs",
+                button_add: "Ajouter",
+                devices_vacuums_title: "Aspirateurs",
+                devices_site_stats_title: "Statistiques par Site",
+                active_devices_title: "Statut des Appareils Actifs",
+                active_devices_operational_sensors: "Capteurs Opérationnels (Statut: Normal)",
+                active_devices_connected_vacuums: "Aspirateurs Connectés",
+                alert_management_title: "Gestion des Alertes",
+                alert_no_alerts: "Aucune alerte à afficher.",
+                history_title: "Historique des Données",
+                history_chart_title: "Évolution des Niveaux de Poussière",
+                history_chart_xaxis_title: "Temps",
+                history_chart_yaxis_title: "Niveau de Poussière (mg/m³)",
+                button_generate_report: "Générer Rapport",
+                button_download_csv: "Télécharger en CSV",
+                history_header_datetime: "Date/Heure",
+                history_header_zone: "Zone",
+                history_header_level: "Niveau",
+                history_header_action: "Action",
+                history_header_zone_status: "Statut Zone",
+                history_no_history: "Aucun historique",
+                settings_title: "Paramètres du Système",
+                settings_general_config: "Configuration Générale",
+                settings_warning_threshold: "Seuil d'alerte (mg/m³)",
+                settings_critical_threshold: "Seuil critique (mg/m³)",
+                settings_max_dust_gauge: "Niveau Max Jauge (mg/m³)",
+                settings_carousel_interval: "Intervalle Carrousel (secondes)",
+                settings_notifications: "Notifications",
+                settings_notifications_placeholder: "Options de configuration des notifications (email, push, etc.) à implémenter.",
+                button_cancel: "Annuler",
+                button_save: "Enregistrer",
+                user_management_title: "Gestion des Utilisateurs",
+                button_add_user: "Ajouter Utilisateur",
+                table_header_user: "Utilisateur",
+                table_header_email: "Email",
+                table_header_role: "Rôle",
+                user_role_admin: "Admin",
+                user_role_user: "Utilisateur",
+                prompt_user_name: "Entrez le nom du nouvel utilisateur :",
+                prompt_user_email: "Entrez l'email du nouvel utilisateur :",
+                prompt_user_role: "Entrez le rôle (admin/user) :",
+                confirm_delete_user: "Êtes-vous sûr de vouloir supprimer l'utilisateur",
+                status_text_normal: "Normal",
+                status_text_warning: "Attention",
+                status_text_danger: "Danger",
+                status_text_recent: "Normal (Récent)",
+                status_text_ok: "OK",
+                status_text_error: "Erreur",
+                status_text_maintenance: "Maintenance",
+                status_text_none: "Aucun",
+                status_text_active: "Actif",
+                status_text_off: "Arrêté",
+                status_text_disconnected: "Déconnecté",
+                status_read: "Lue",
+                status_in_progress: "En cours",
+                zone: "Zone",
+                level_detected: "Niveau {level} mg/m³ détecté",
+                main_sensor: "Capteur principal",
+                alert_details_button: "Détails",
+                alert_mark_read_button: "Marquer lu",
+                button_edit: "Modifier",
+                button_close: "Fermer",
+                alert_modal_title: "Détails de l'Alerte IA",
+                alert_modal_problem: "Problème Détecté",
+                alert_modal_analysis: "Analyse de l'IA",
+                alert_modal_action: "Mesure Corrective Initiée",
+                alert_modal_status: "Statut Actuel",
+                alert_modal_desc_warning: "Le niveau de poussière de {level} mg/m³ dans la {zoneName} a dépassé le seuil d'alerte ({threshold} mg/m³).",
+                alert_modal_desc_danger: "Le niveau de poussière de {level} mg/m³ dans la {zoneName} a dépassé le seuil critique ({threshold} mg/m³).",
+                alert_modal_action_desc: "Le système a automatiquement activé l'aspirateur à une puissance de {power}% pour réduire le niveau de poussière.",
+                alert_modal_action_desc_increase: "Le système a automatiquement augmenté la puissance de l'aspirateur à {power}% pour contrer la hausse du niveau de poussière.",
+                button_delete: "Supprimer",
+                zone_status_label: "Statut Actuel:",
+                zone_associated_devices: "Appareils Associés:",
+                zone_no_sensor: "Aucun capteur",
+                zone_no_vacuum: "Aucun aspirateur",
+                button_add_device_to_zone: "Ajouter un appareil...",
+                devices_no_sensors_found: "Aucun capteur trouvé.",
+                devices_no_vacuums_found: "Aucun aspirateur trouvé.",
+                devices_active_sensors: "Capteurs Actifs:",
+                devices_connected_vacuums: "Aspirateurs Connectés:",
+                devices_no_sites_found: "Aucun site trouvé.",
+                active_devices_no_operational_sensors: "Aucun capteur opérationnel actuellement.",
+                active_devices_no_connected_vacuums: "Aucun aspirateur connecté actuellement.",
+                sensor_type_dust: "Poussière",
+                sensor_type_pressure: "Pression",
+                sensor_type_vibration: "Vibration",
+                sensor_type_default: "Générique",
+                prompt_add_sensor_type: "Quel type de capteur ajouter ? ({types})",
+                alert_invalid_sensor_type: "Type de capteur invalide. Les types valides sont : {types}.",
+                history_log_alert: "ALERTE {status}: {action}",
+                history_log_manual_start: "Démarrage manuel aspirateur",
+                history_log_manual_stop: "Arrêt manuel aspirateur (Niveau OK)",
+                history_log_vacuum_off_conn_sensor: "Aspirateur arrêté (Problème Conn/Sensor)",
+                history_log_vacuum_on_critical: "Aspirateur activé ({power}%) - Critique",
+                history_log_vacuum_on_warning: "Aspirateur activé ({power}%) - Alerte",
+                history_log_vacuum_power_up_warning: "Puissance aspirateur augmentée ({power}%) - Alerte",
+                history_log_vacuum_off_normal: "Aspirateur arrêté - Niveau normal",
+                alert_save_success: "Paramètres enregistrés !",
+                alert_manual_start_fail: "Impossible de démarrer le nettoyage manuel. Vérifiez le mode, la connexion, l'état des capteurs ou si un nettoyage est déjà en cours.",
+                prompt_zone_name: "Entrez le nom de la nouvelle zone:",
+                prompt_site_name: "Entrez le nom du site:",
+                prompt_zone_description: "Entrez une description:",
+                new_zone_default_desc: "Nouvelle zone",
+                prompt_edit_zone_name: "Entrez le nouveau nom pour",
+                prompt_edit_site_name: "Entrez le nouveau site pour",
+                current: "actuel",
+                prompt_edit_zone_description: "Entrez la nouvelle description pour",
+                confirm_delete_zone: "Êtes-vous sûr de vouloir supprimer la zone",
+                prompt_add_device_zone_id: "Entrez l'ID de la zone où ajouter le",
+                alert_invalid_zone_id: "ID de zone invalide ou zone non trouvée.",
+                prompt_add_device_type: "Quel type d'appareil ajouter à",
+                alert_invalid_device_type: "Type invalide. Entrez 'sensor' ou 'vacuum'.",
+                confirm_delete_device: "Êtes-vous sûr de vouloir supprimer l'appareil",
+                from_zone: "de la zone",
+                zone_no_configured: "Aucune zone configurée.",
+                zone_no_configured_prompt: "Aucune zone configurée. Cliquez sur 'Ajouter Zone' pour commencer."
+            },
+            en: {
+                app_title: "Dustbuster AI v2.4 - Diversified Sensors",
+                tab_dashboard: "Dashboard",
+                tab_zones: "Zones",
+                tab_devices: "Devices",
+                tab_active_devices: "Connected Devices",
+                tab_alerts: "Alerts",
+                tab_history: "History",
+                tab_settings: "Settings",
+                tab_users: "Users",
+                button_logout: "Logout",
+                notifications_title: "Notifications",
+                notifications_none: "No new notifications.",
+                notifications_see_all: "See all alerts",
+                overview_active_zones: "Active Zones",
+                overview_active_sensors: "Active Sensors",
+                overview_connected_vacuums: "Connected Vacuums",
+                overview_alerts_24h: "Alerts (24h)",
+                overview_alerts_none_critical: "No critical",
+                overview_alerts_critical_single: "critical",
+                overview_alerts_critical_plural: "critical",
+                monitoring_title: "Real-time Monitoring",
+                loading: "Loading...",
+                button_auto_mode: "Automatic",
+                button_manual_mode: "Manual",
+                gauge_threshold_label: "Threshold:",
+                monitoring_vacuum_control: "Vacuum Control",
+                monitoring_zone_status: "Selected Zone Status",
+                monitoring_sensors: "Sensors",
+                monitoring_vacuum: "Vacuum",
+                manual_controls_auto_info: "The system automatically controls the vacuum.",
+                manual_controls_manual_info: "Start a manual cleaning cycle.",
+                button_start_manual_clean: "Start Manual Clean",
+                button_manual_clean_in_progress: "Cleaning in progress...",
+                button_manual_clean_unavailable: "Unavailable (Auto/Error)",
+                dashboard_zone_list_title: "Zones Overview",
+                button_manage: "Manage",
+                ai_insights_title: "AI Insights",
+                ai_insights_checking: "Analyzing equipment status...",
+                ai_insight_sensor_error: "⚠️ Sensor {sensorId} in zone {zoneName} reports an error. Check needed.",
+                ai_insight_sensor_maintenance: "🔧 Sensor {sensorId} in zone {zoneName} is under maintenance.",
+                ai_insight_vacuum_disconnected: "🔌 Vacuum {vacuumId} in zone {zoneName} is disconnected. Check connection.",
+                ai_insight_system_ok: "✅ All systems operating nominally.",
+                dashboard_recent_alerts_title: "Recent Alerts",
+                button_see_all: "See all",
+                table_header_zone: "Zone",
+                table_header_level: "Level",
+                table_header_time: "Time",
+                table_header_action: "Action",
+                table_header_status: "Status",
+                dashboard_no_recent_alerts: "No recent alerts",
+                zone_management_title: "Zone Management",
+                button_add_zone: "Add Zone",
+                device_management_title: "Device Management",
+                devices_sensors_title: "Sensors",
+                button_add: "Add",
+                devices_vacuums_title: "Vacuums",
+                devices_site_stats_title: "Stats per Site",
+                active_devices_title: "Active Devices Status",
+                active_devices_operational_sensors: "Operational Sensors (Status: Normal)",
+                active_devices_connected_vacuums: "Connected Vacuums",
+                alert_management_title: "Alert Management",
+                alert_no_alerts: "No alerts to display.",
+                history_title: "Data History",
+                history_chart_title: "Dust Level Evolution",
+                history_chart_xaxis_title: "Time",
+                history_chart_yaxis_title: "Dust Level (mg/m³)",
+                button_generate_report: "Generate Report",
+                button_download_csv: "Download as CSV",
+                history_header_datetime: "Date/Time",
+                history_header_zone: "Zone",
+                history_header_level: "Level",
+                history_header_action: "Action",
+                history_header_zone_status: "Zone Status",
+                history_no_history: "No history",
+                settings_title: "System Settings",
+                settings_general_config: "General Configuration",
+                settings_warning_threshold: "Warning Threshold (mg/m³)",
+                settings_critical_threshold: "Critical Threshold (mg/m³)",
+                settings_max_dust_gauge: "Max Gauge Level (mg/m³)",
+                settings_carousel_interval: "Carousel Interval (seconds)",
+                settings_notifications: "Notifications",
+                settings_notifications_placeholder: "Notification configuration options (email, push, etc.) to be implemented.",
+                button_cancel: "Cancel",
+                button_save: "Save",
+                user_management_title: "User Management",
+                button_add_user: "Add User",
+                table_header_user: "User",
+                table_header_email: "Email",
+                table_header_role: "Role",
+                user_role_admin: "Admin",
+                user_role_user: "User",
+                prompt_user_name: "Enter the new user's name:",
+                prompt_user_email: "Enter the new user's email:",
+                prompt_user_role: "Enter the role (admin/user):",
+                confirm_delete_user: "Are you sure you want to delete the user",
+                status_text_normal: "Normal",
+                status_text_warning: "Warning",
+                status_text_danger: "Danger",
+                status_text_recent: "Normal (Recent)",
+                status_text_ok: "OK",
+                status_text_error: "Error",
+                status_text_maintenance: "Maintenance",
+                status_text_none: "None",
+                status_text_active: "Active",
+                status_text_off: "Off",
+                status_text_disconnected: "Disconnected",
+                status_read: "Read",
+                status_in_progress: "In Progress",
+                zone: "Zone",
+                level_detected: "Level {level} mg/m³ detected",
+                main_sensor: "Main sensor",
+                alert_details_button: "Details",
+                alert_mark_read_button: "Mark read",
+                button_edit: "Edit",
+                button_close: "Close",
+                alert_modal_title: "AI Alert Details",
+                alert_modal_problem: "Problem Detected",
+                alert_modal_analysis: "AI Analysis",
+                alert_modal_action: "Corrective Action Initiated",
+                alert_modal_status: "Current Status",
+                alert_modal_desc_warning: "The dust level of {level} mg/m³ in {zoneName} has exceeded the warning threshold ({threshold} mg/m³).",
+                alert_modal_desc_danger: "The dust level of {level} mg/m³ in {zoneName} has exceeded the critical threshold ({threshold} mg/m³).",
+                alert_modal_action_desc: "The system has automatically activated the vacuum at {power}% power to reduce the dust level.",
+                alert_modal_action_desc_increase: "The system has automatically increased the vacuum power to {power}% to counter the rising dust level.",
+                button_delete: "Delete",
+                zone_status_label: "Current Status:",
+                zone_associated_devices: "Associated Devices:",
+                zone_no_sensor: "No sensors",
+                zone_no_vacuum: "No vacuums",
+                button_add_device_to_zone: "Add device...",
+                devices_no_sensors_found: "No sensors found.",
+                devices_no_vacuums_found: "No vacuums found.",
+                devices_active_sensors: "Active Sensors:",
+                devices_connected_vacuums: "Connected Vacuums:",
+                devices_no_sites_found: "No sites found.",
+                active_devices_no_operational_sensors: "No operational sensors currently.",
+                active_devices_no_connected_vacuums: "No connected vacuums currently.",
+                sensor_type_dust: "Dust",
+                sensor_type_pressure: "Pressure",
+                sensor_type_vibration: "Vibration",
+                sensor_type_default: "Generic",
+                prompt_add_sensor_type: "What type of sensor to add? ({types})",
+                alert_invalid_sensor_type: "Invalid sensor type. Valid types are: {types}.",
+                history_log_alert: "ALERT {status}: {action}",
+                history_log_manual_start: "Manual vacuum start",
+                history_log_manual_stop: "Manual vacuum stop (Level OK)",
+                history_log_vacuum_off_conn_sensor: "Vacuum stopped (Conn/Sensor Issue)",
+                history_log_vacuum_on_critical: "Vacuum activated ({power}%) - Critical",
+                history_log_vacuum_on_warning: "Vacuum activated ({power}%) - Warning",
+                history_log_vacuum_power_up_warning: "Vacuum power increased ({power}%) - Warning",
+                history_log_vacuum_off_normal: "Vacuum stopped - Normal level",
+                alert_save_success: "Settings saved!",
+                alert_manual_start_fail: "Cannot start manual cleaning. Check mode, connection, sensor status, or if already active.",
+                prompt_zone_name: "Enter the name for the new zone:",
+                prompt_site_name: "Enter the site name:",
+                prompt_zone_description: "Enter a description:",
+                new_zone_default_desc: "New zone",
+                prompt_edit_zone_name: "Enter the new name for",
+                prompt_edit_site_name: "Enter the new site for",
+                current: "current",
+                prompt_edit_zone_description: "Enter the new description for",
+                confirm_delete_zone: "Are you sure you want to delete the zone",
+                prompt_add_device_zone_id: "Enter the ID of the zone to add the",
+                alert_invalid_zone_id: "Invalid zone ID or zone not found.",
+                prompt_add_device_type: "What type of device to add to",
+                alert_invalid_device_type: "Invalid type. Enter 'sensor' or 'vacuum'.",
+                confirm_delete_device: "Are you sure you want to delete the device",
+                from_zone: "from zone",
+                zone_no_configured: "No zones configured.",
+                zone_no_configured_prompt: "No zones configured. Click 'Add Zone' to start."
+            }
+        };
+        let currentLanguage = 'fr'; // Langue par défaut
+
+        // --- État de l'application ---
+        let currentMode = 'auto';
+        let selectedZoneId = null;
+        let zonesData = {
+            'B2': { site: 'Site Alpha', name: 'Zone B2', description: 'Secteur de production', dustLevel: 0.10, lastVacuumRun: null, icon: 'fa-industry', sensors: [{id: 'S-B2-01', type: 'poussière', status: 'normal', value: 0.10}, {id: 'S-B2-02', type: 'pression', status: 'normal', value: 1.02}], vacuums: [{id: 'V-B2-01', connected: true, on: false, power: 0}], manualCleaningActive: false },
+            'A1': { site: 'Site Alpha', name: 'Zone A1', description: 'Secteur de broyage', dustLevel: 0.45, lastVacuumRun: null, icon: 'fa-cogs', sensors: [{id: 'S-A1-01', type: 'poussière', status: 'normal', value: 0.45}, {id: 'S-A1-02', type: 'vibration', status: 'maintenance', value: 0.8}], vacuums: [{id: 'V-A1-01', connected: true, on: false, power: 0}], manualCleaningActive: false },
+            'C3': { site: 'Site Beta', name: 'Zone C3', description: 'Secteur d\'ensachage', dustLevel: 0.65, lastVacuumRun: null, icon: 'fa-box-open', sensors: [{id: 'S-C3-01', type: 'poussière', status: 'normal', value: 0.65}], vacuums: [{id: 'V-C3-01', connected: true, on: false, power: 0}], manualCleaningActive: false },
+            'D2': { site: 'Site Beta', name: 'Zone D2', description: 'Stockage', dustLevel: 0.05, lastVacuumRun: null, icon: 'fa-warehouse', sensors: [{id: 'S-D2-01', type: 'poussière', status: 'error', value: 0.05}], vacuums: [{id: 'V-D2-01', connected: false, on: false, power: 0}], manualCleaningActive: false }
+        };
+        let alerts = [];
+        let history = [];
+        let users = [];
+        let currentUser = null;
+        let simulationTimer = null;
+        let aiInsightTimer = null;
+        let carouselTimer = null;
+        let historyChart = null;
+        let currentCarouselZoneIndex = 0;
+        let nextZoneNum = 1;
+        let nextSensorNum = 1;
+        let nextVacuumNum = 1;
+
+        // --- Références DOM ---
+        const mobileMenuButton = document.getElementById('mobileMenuButton');
+        const closeMobileMenu = document.getElementById('closeMobileMenu');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const overlay = document.getElementById('overlay');
+        const notificationsButton = document.getElementById('notificationsButton');
+        const notificationsDropdown = document.getElementById('notificationsDropdown');
+        const notificationBadge = document.getElementById('notificationBadge');
+        const notificationList = document.getElementById('notificationList');
+        const tabLinks = document.querySelectorAll('.tab-link');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const pageTitle = document.getElementById('pageTitle');
+        const alarmSound = document.getElementById('alarmSound');
+        const currentZoneDisplay = document.getElementById('currentZoneDisplay');
+        const dustLevelFill = document.getElementById('dustLevelFill');
+        const dustLevelValue = document.getElementById('dustLevelValue');
+        const vacuumPowerBar = document.getElementById('vacuumPowerBar');
+        const vacuumPowerValue = document.getElementById('vacuumPowerValue');
+        const vacuumStatusLabel = document.getElementById('vacuumStatusLabel');
+        const autoModeBtn = document.getElementById('autoModeBtn');
+        const manualModeBtn = document.getElementById('manualModeBtn');
+        const manualControlsContainer = document.getElementById('manualControlsContainer');
+        const manualCleanBtn = document.getElementById('manualCleanBtn');
+        const autoModeInfo = document.getElementById('autoModeInfo');
+        const manualModeInfo = document.getElementById('manualModeInfo');
+        const sensorStatusIndicator = document.getElementById('sensorStatusIndicator');
+        const sensorStatusText = document.getElementById('sensorStatusText');
+        const vacuumStatusIndicator = document.getElementById('vacuumStatusIndicator');
+        const vacuumConnText = document.getElementById('vacuumConnText');
+        const zoneListContainer = document.getElementById('zoneListContainer');
+        const zoneManagementContainer = document.getElementById('zoneManagementContainer');
+        const sensorListContainer = document.getElementById('sensorListContainer');
+        const vacuumListContainer = document.getElementById('vacuumListContainer');
+        const siteStatsContainer = document.getElementById('siteStatsContainer');
+        const alertsTableBody = document.getElementById('alertsTableBody');
+        const noAlertsRow = document.getElementById('noAlertsRow');
+        const gaugeThresholdLabel = document.getElementById('gaugeThresholdLabel');
+        const gaugeMaxLabel = document.getElementById('gaugeMaxLabel');
+        const overviewZonesCount = document.getElementById('overviewZonesCount');
+        const overviewSensorsStatus = document.getElementById('overviewSensorsStatus');
+        const overviewSensorsIndicator = document.getElementById('overviewSensorsIndicator');
+        const overviewVacuumsStatus = document.getElementById('overviewVacuumsStatus');
+        const overviewVacuumsIndicator = document.getElementById('overviewVacuumsIndicator');
+        const overviewAlertsCount = document.getElementById('overviewAlertsCount');
+        const overviewAlertsIndicator = document.getElementById('overviewAlertsIndicator');
+        const aiInsightsContainer = document.getElementById('aiInsightsContainer');
+        const alertCardsContainer = document.getElementById('alertCardsContainer');
+        const noAlertsMessage = document.getElementById('noAlertsMessage');
+        const historyTableBody = document.getElementById('historyTableBody');
+        const noHistoryRow = document.getElementById('noHistoryRow');
+        const activeSensorList = document.getElementById('activeSensorList');
+        const activeVacuumList = document.getElementById('activeVacuumList');
+        const userListContainer = document.getElementById('userListContainer');
+
+        // --- Fonctions Utilitaires ---
+        function formatTime(date) { return date.toLocaleTimeString(currentLanguage, { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+        function getDateTimeString(date) { return date.toLocaleString(currentLanguage, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+        
+        const chartColors = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#64748b'];
+        function getChartColor(index) {
+            return chartColors[index % chartColors.length];
+        }
+
+        function translate(key, replacements = {}) {
+            let text = translations[currentLanguage]?.[key] || translations['en']?.[key] || key;
+            for (const placeholder in replacements) {
+                text = text.replace(`{${placeholder}}`, replacements[placeholder]);
+            }
+            return text;
+        }
+        function applyTranslations() {
+             document.querySelectorAll('[data-translate-key]').forEach(element => {
+                const key = element.dataset.translateKey;
+                if (key) {
+                    if (element.tagName === 'INPUT' && element.placeholder) {
+                        element.placeholder = translate(key);
+                    } else if (element.title && !element.dataset.dynamicTitle) { // Ne pas écraser les titres dynamiques
+                         element.title = translate(key);
+                    } else {
+                        const translatedText = translate(key);
+                        // Conserver les icônes FontAwesome lors de la traduction
+                        const iconElement = element.querySelector('i.fas');
+                        if (iconElement) {
+                             const iconHTML = iconElement.outerHTML;
+                             // Vérifier si l'icône est au début ou à la fin
+                             if (element.innerHTML.trim().startsWith(iconHTML)) {
+                                 element.innerHTML = iconHTML + ' ' + translatedText;
+                             } else if (element.innerHTML.trim().endsWith(iconHTML)) {
+                                 element.innerHTML = translatedText + ' ' + iconHTML;
+                             } else {
+                                 // Cas par défaut si l'icône n'est ni au début ni à la fin (moins probable pour les boutons/liens)
+                                 element.textContent = translatedText;
+                             }
+                        } else {
+                             // Si pas d'icône, juste mettre le texte
+                             element.textContent = translatedText;
+                        }
+                    }
+                }
+            });
+            // Mettre à jour spécifiquement les éléments qui ne sont pas couverts par data-translate-key mais qui dépendent de la langue
+            updateMonitoringWidget(); // Contient des labels mis à jour
+            updateOverview(); // Contient des labels mis à jour
+            const activeTabLink = document.querySelector('.tab-link.text-blue-600');
+            if (activeTabLink) {
+                pageTitle.textContent = translate(activeTabLink.dataset.translateKey);
+                pageTitle.dataset.translateKey = activeTabLink.dataset.translateKey; // Assurer la cohérence
+            }
+            document.title = translate('app_title'); // Mettre à jour le titre de la page
+        }
+        function setLanguage(lang) {
+            if (translations[lang]) {
+                currentLanguage = lang;
+                document.documentElement.lang = lang; // Met à jour l'attribut lang de la balise <html>
+                document.querySelectorAll('.btn-lang').forEach(btn => {
+                    btn.classList.toggle('active', btn.id === `langBtn-${lang}`);
+                });
+                applyTranslations(); // Applique toutes les traductions
+                updateAllUI(); // Mettre à jour tous les éléments d'UI qui pourraient dépendre de la langue (tableaux, listes, etc.)
+                console.log(`Language set to: ${lang}`);
+            } else {
+                console.warn(`Language ${lang} not found.`);
+            }
+        }
+        function getZoneOverallStatus(zone) {
+            const level = zone.dustLevel;
+            const isRecent = zone.lastVacuumRun && (Date.now() - zone.lastVacuumRun < config.RECENTLY_CLEANED_THRESHOLD);
+            let statusKey = 'status_text_normal';
+            let indicator = 'normal';
+            let iconColor = 'text-green-600';
+            let bgColor = 'bg-green-100';
+
+            if (level >= config.CRITICAL_THRESHOLD) { statusKey = 'status_text_danger'; indicator = 'danger'; iconColor = 'text-red-600'; bgColor = 'bg-red-100'; }
+            else if (level >= config.WARNING_THRESHOLD) { statusKey = 'status_text_warning'; indicator = 'warning'; iconColor = 'text-yellow-600'; bgColor = 'bg-yellow-100'; }
+            else if (isRecent) { statusKey = 'status_text_recent'; indicator = 'recent'; iconColor = 'text-blue-600'; bgColor = 'bg-blue-100'; }
+
+            return { textKey: statusKey, text: translate(statusKey), indicator, iconColor, bgColor };
+        }
+        function getSensorOverallStatus(sensors) {
+            let statusKey = 'status_text_ok';
+            let icon = 'fa-check-circle';
+            let color = 'text-green-500';
+            let indicator = 'normal';
+
+            if (!sensors || sensors.length === 0) { statusKey = 'status_text_none'; icon = 'fa-question-circle'; color = 'text-gray-400'; indicator = 'off'; }
+            else if (sensors.some(s => s.status === 'error')) { statusKey = 'status_text_error'; icon = 'fa-exclamation-circle'; color = 'text-red-500'; indicator = 'error'; }
+            else if (sensors.some(s => s.status === 'maintenance')) { statusKey = 'status_text_maintenance'; icon = 'fa-wrench'; color = 'text-yellow-500'; indicator = 'warning'; }
+
+            return { textKey: statusKey, text: translate(statusKey), icon, color, indicator };
+        }
+        function getVacuumOverallStatus(vacuums) {
+             if (!vacuums || vacuums.length === 0) {
+                 return { textKey: 'status_text_none', text: translate('status_text_none'), icon: 'fa-question-circle', color: 'text-gray-400', indicator: 'off', connected: false, on: false };
+             }
+             const connected = vacuums.every(v => v.connected);
+             const on = vacuums.some(v => v.on);
+             const statusIndicator = connected ? (on ? 'normal' : 'off') : 'error';
+             let statusKey = connected ? (on ? 'status_text_active' : 'status_text_off') : 'status_text_disconnected';
+             const icon = connected ? 'fa-plug' : 'fa-plug'; // Garder l'icône plug même si déconnecté pour la cohérence
+             const color = connected ? (on ? 'text-blue-500' : 'text-gray-500') : 'text-red-500';
+
+             return { textKey: statusKey, text: translate(statusKey), icon, color, indicator: statusIndicator, connected, on };
+        }
+
+        // Helper pour les types de capteurs
+        const sensorTypeDetails = {
+            'poussière': { icon: 'fa-smog', nameKey: 'sensor_type_dust', unit: 'mg/m³' },
+            'pression': { icon: 'fa-tachometer-alt', nameKey: 'sensor_type_pressure', unit: 'bar' },
+            'vibration': { icon: 'fa-wave-square', nameKey: 'sensor_type_vibration', unit: 'g' },
+            'default': { icon: 'fa-sensor', nameKey: 'sensor_type_default', unit: '' }
+        };
+
+        function getSensorTypeInfo(type) {
+            return sensorTypeDetails[type] || sensorTypeDetails['default'];
+        }
+
+        // --- Fonctions de Mise à Jour UI ---
+        function updateMonitoringWidget() {
+             if (!selectedZoneId || !zonesData[selectedZoneId]) {
+                currentZoneDisplay.textContent = translate('loading');
+                dustLevelValue.textContent = '--';
+                vacuumStatusLabel.textContent = '--';
+                vacuumPowerValue.textContent = '0%';
+                vacuumPowerBar.style.width = '0%';
+                sensorStatusIndicator.className = 'status-indicator status-off';
+                sensorStatusText.textContent = translate('monitoring_sensors');
+                vacuumStatusIndicator.className = 'status-indicator status-off';
+                vacuumConnText.textContent = translate('monitoring_vacuum');
+                gaugeThresholdLabel.textContent = `${translate('gauge_threshold_label')} --`;
+                gaugeMaxLabel.textContent = `--`;
+                updateManualControlsUI(); // Mettre à jour les contrôles manuels même si aucune zone n'est sélectionnée
+                return;
+            }
+
+            const zone = zonesData[selectedZoneId];
+            const status = getZoneOverallStatus(zone);
+            const sensorStatus = getSensorOverallStatus(zone.sensors);
+            const vacuumStatus = getVacuumOverallStatus(zone.vacuums);
+
+            currentZoneDisplay.textContent = zone.name; // Afficher le nom de la zone sélectionnée
+            const level = zone.dustLevel;
+            const percentage = Math.min(level / config.MAX_DUST_LEVEL, 1);
+            const rotation = percentage * 0.5; // 0.5 turn = 180 degrees
+            dustLevelFill.style.transform = `rotate(${rotation}turn)`;
+            dustLevelValue.textContent = level.toFixed(2);
+
+            // Update gauge color based on status
+            if (status.indicator === 'danger') dustLevelFill.style.background = 'linear-gradient(90deg, var(--secondary), var(--warning), var(--danger))';
+            else if (status.indicator === 'warning') dustLevelFill.style.background = 'linear-gradient(90deg, var(--secondary), var(--warning))';
+            else if (status.indicator === 'recent') dustLevelFill.style.background = 'linear-gradient(90deg, var(--secondary), #60a5fa)'; // Blueish gradient for recent
+            else dustLevelFill.style.background = 'var(--secondary)'; // Default green
+
+            gaugeThresholdLabel.textContent = `${translate('gauge_threshold_label')} ${config.WARNING_THRESHOLD}`;
+            gaugeMaxLabel.textContent = config.MAX_DUST_LEVEL.toFixed(1);
+
+            const mainVacuum = zone.vacuums?.[0] || { connected: false, on: false, power: 0 };
+            vacuumPowerBar.style.width = `${mainVacuum.power}%`;
+            vacuumPowerValue.textContent = `${mainVacuum.power}%`;
+            vacuumStatusLabel.textContent = mainVacuum.connected ? (mainVacuum.on ? `${translate('status_text_active')} (${mainVacuum.power}%)` : translate('status_text_off')) : translate('status_text_disconnected');
+
+            sensorStatusIndicator.className = `status-indicator status-${sensorStatus.indicator}`;
+            sensorStatusText.textContent = `${translate('monitoring_sensors')} (${sensorStatus.text})`;
+            sensorStatusText.title = `${translate('monitoring_sensors')}: ${sensorStatus.text}`; // Add title for tooltip
+            sensorStatusText.dataset.dynamicTitle = "true"; // Mark title as dynamic
+
+            vacuumStatusIndicator.className = `status-indicator status-${vacuumStatus.indicator}`;
+            vacuumConnText.textContent = `${translate('monitoring_vacuum')} (${vacuumStatus.text})`;
+            vacuumConnText.title = `${translate('monitoring_vacuum')}: ${vacuumStatus.text}`; // Add title for tooltip
+            vacuumConnText.dataset.dynamicTitle = "true"; // Mark title as dynamic
+
+            updateManualControlsUI(); // Mettre à jour l'état des contrôles manuels
+        }
+        function updateZoneList() {
+            zoneListContainer.innerHTML = '';
+             const sortedZoneIds = Object.keys(zonesData).sort();
+            sortedZoneIds.forEach(zoneId => {
+                const zone = zonesData[zoneId];
+                const status = getZoneOverallStatus(zone);
+                const sensorInfo = getSensorOverallStatus(zone.sensors);
+                const vacuumInfo = getVacuumOverallStatus(zone.vacuums);
+
+                const zoneElement = document.createElement('div');
+                // Ajout de la classe 'zone-item' et data-zone-id pour une sélection plus facile si nécessaire
+                zoneElement.className = `flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition cursor-pointer zone-item`;
+                zoneElement.dataset.zoneId = zoneId;
+                zoneElement.onclick = () => {
+                    stopCarousel(); // Arrêter le carrousel si une zone est cliquée
+                    selectedZoneId = zoneId;
+                    updateMonitoringWidget();
+                    showTab('dashboard'); // Rester sur le tableau de bord mais mettre à jour le widget principal
+                    console.log(`Carousel stopped. Zone ${zoneId} selected manually.`);
+                };
+                zoneElement.innerHTML = `
+                    <div class="w-10 h-10 rounded-full ${status.bgColor} flex items-center justify-center ${status.iconColor} mr-3 flex-shrink-0">
+                        <i class="fas ${zone.icon || 'fa-industry'}"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-medium text-gray-800 truncate">${zone.name} <span class="text-xs text-gray-400">(${zone.site})</span></h4>
+                        <div class="flex items-center text-xs text-gray-500 mt-1 space-x-2">
+                            <span title="${translate('monitoring_sensors')}: ${sensorInfo.text}" data-dynamic-title="true"><i class="fas ${sensorInfo.icon} ${sensorInfo.color}"></i></span>
+                            <span title="${translate('monitoring_vacuum')}: ${vacuumInfo.text}" data-dynamic-title="true"><i class="fas ${vacuumInfo.icon} ${vacuumInfo.color}"></i></span>
+                        </div>
+                    </div>
+                    <div class="text-right ml-2 flex-shrink-0">
+                        <p class="text-sm font-medium text-gray-800">${zone.dustLevel.toFixed(2)} mg/m³</p>
+                        <p class="text-xs ${status.iconColor}">${status.text}</p>
+                    </div>
+                `;
+                zoneListContainer.appendChild(zoneElement);
+            });
+             if (Object.keys(zonesData).length === 0) {
+                 zoneListContainer.innerHTML = `<p class="text-sm text-gray-500">${translate('zone_no_configured')}</p>`;
+             }
+        }
+        function updateZoneManagementList() {
+            zoneManagementContainer.innerHTML = '';
+             const sortedZoneIds = Object.keys(zonesData).sort();
+             sortedZoneIds.forEach(zoneId => {
+                 const zone = zonesData[zoneId];
+                 const status = getZoneOverallStatus(zone);
+                 const sensorInfo = getSensorOverallStatus(zone.sensors);
+                 const vacuumInfo = getVacuumOverallStatus(zone.vacuums);
+
+                 const card = document.createElement('div');
+                 card.className = 'card bg-white p-5';
+                 card.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h4 class="text-lg font-semibold text-gray-800">${zone.name} <span class="text-sm font-normal text-gray-500">(${zone.site})</span></h4>
+                            <p class="text-sm text-gray-500">${zone.description}</p>
+                        </div>
+                        <div class="flex space-x-2 flex-shrink-0">
+                             <button class="btn-edit" onclick="editZone('${zoneId}')"><i class="fas fa-edit mr-1"></i> ${translate('button_edit')}</button>
+                             <button class="btn-danger" onclick="deleteZone('${zoneId}')"><i class="fas fa-trash mr-1"></i> ${translate('button_delete')}</button>
+                        </div>
+                    </div>
+                     <div class="mb-4">
+                        <p class="text-sm font-medium text-gray-700">${translate('zone_status_label')}</p>
+                        <div class="flex items-center space-x-4 mt-1">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full ${status.bgColor} ${status.iconColor}">${status.text} (${zone.dustLevel.toFixed(2)} mg/m³)</span>
+                            <span class="text-sm text-gray-600" title="${translate('monitoring_sensors')}: ${sensorInfo.text}" data-dynamic-title="true"><i class="fas ${sensorInfo.icon} ${sensorInfo.color} mr-1"></i> ${zone.sensors?.length || 0} ${translate('monitoring_sensors')}</span>
+                            <span class="text-sm text-gray-600" title="${translate('monitoring_vacuum')}: ${vacuumInfo.text}" data-dynamic-title="true"><i class="fas ${vacuumInfo.icon} ${vacuumInfo.color} mr-1"></i> ${zone.vacuums?.length || 0} ${translate('monitoring_vacuum')}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-700 mb-2">${translate('zone_associated_devices')}</p>
+                        <div class="text-xs text-gray-500 space-y-1">
+                            ${zone.sensors?.map(s => {
+                                const typeInfo = getSensorTypeInfo(s.type);
+                                const statusInfo = getSensorOverallStatus([s]);
+                                return `<div><i class="fas ${typeInfo.icon} mr-1"></i> ${s.id} (${translate(typeInfo.nameKey)}) - <b>${s.value.toFixed(2)} ${typeInfo.unit}</b> - ${translate(statusInfo.textKey)} <button class="text-red-500 hover:text-red-700 ml-2" onclick="deleteDevice('${zoneId}', 'sensor', '${s.id}')"><i class="fas fa-times"></i></button></div>`;
+                            }).join('') || translate('zone_no_sensor')}
+                            ${zone.vacuums?.map(v => `<div><i class="fas fa-fan mr-1"></i> ${v.id} (${translate(getVacuumOverallStatus([v]).textKey)}) <button class="text-red-500 hover:text-red-700 ml-2" onclick="deleteDevice('${zoneId}', 'vacuum', '${v.id}')"><i class="fas fa-times"></i></button></div>`).join('') || translate('zone_no_vacuum')}
+                        </div>
+                         <button class="mt-3 text-blue-600 hover:text-blue-800 text-xs font-medium" onclick="addDeviceToZone('${zoneId}')">${translate('button_add_device_to_zone')}</button>
+                    </div>
+                 `;
+                 zoneManagementContainer.appendChild(card);
+             });
+             if (Object.keys(zonesData).length === 0) {
+                 zoneManagementContainer.innerHTML = `<p class="text-gray-600">${translate('zone_no_configured_prompt')}</p>`;
+             }
+        }
+        function updateDeviceLists() {
+            sensorListContainer.innerHTML = '';
+            vacuumListContainer.innerHTML = '';
+            const allSensors = [];
+            const allVacuums = [];
+            const siteData = {};
+
+            Object.keys(zonesData).forEach(zoneId => {
+                const zone = zonesData[zoneId];
+                if (!siteData[zone.site]) {
+                    siteData[zone.site] = { totalSensors: 0, activeSensors: 0, totalVacuums: 0, connectedVacuums: 0 };
+                }
+
+                zone.sensors?.forEach(s => {
+                    allSensors.push({ ...s, zoneId: zoneId, zoneName: zone.name, site: zone.site });
+                    siteData[zone.site].totalSensors++;
+                    if (s.status === 'normal') siteData[zone.site].activeSensors++;
+                });
+                zone.vacuums?.forEach(v => {
+                    allVacuums.push({ ...v, zoneId: zoneId, zoneName: zone.name, site: zone.site });
+                    siteData[zone.site].totalVacuums++;
+                    if (v.connected) siteData[zone.site].connectedVacuums++;
+                });
+            });
+
+            if (allSensors.length > 0) {
+                 allSensors.sort((a,b) => a.id.localeCompare(b.id)).forEach(s => {
+                    const statusInfo = getSensorOverallStatus([{status: s.status}]);
+                    const typeInfo = getSensorTypeInfo(s.type);
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-2 border-b border-gray-100';
+                    item.innerHTML = `
+                        <div class="flex items-center">
+                            <i class="fas ${typeInfo.icon} mr-3 ${statusInfo.color}"></i>
+                            <div>
+                                <p class="text-sm font-medium text-gray-800">${s.id}</p>
+                                <p class="text-xs text-gray-500">${translate(typeInfo.nameKey)} - ${s.zoneName} (${s.site})</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-medium ${statusInfo.color}">${statusInfo.text} (${s.value.toFixed(2)} ${typeInfo.unit})</span>
+                            <button class="btn-danger text-xs" onclick="deleteDevice('${s.zoneId}', 'sensor', '${s.id}')"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                    sensorListContainer.appendChild(item);
+                });
+            } else {
+                sensorListContainer.innerHTML = `<p class="text-sm text-gray-500">${translate('devices_no_sensors_found')}</p>`;
+            }
+
+            if (allVacuums.length > 0) {
+                 allVacuums.sort((a,b) => a.id.localeCompare(b.id)).forEach(v => {
+                    const statusInfo = getVacuumOverallStatus([{...v}]);
+                     const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-2 border-b border-gray-100';
+                    item.innerHTML = `
+                        <div class="flex items-center">
+                            <i class="fas fa-fan mr-3 ${statusInfo.color}"></i>
+                            <div>
+                                <p class="text-sm font-medium text-gray-800">${v.id}</p>
+                                <p class="text-xs text-gray-500">${v.zoneName} (${v.site})</p>
+                            </div>
+                        </div>
+                         <div class="flex items-center space-x-2">
+                            <span class="text-xs font-medium ${statusInfo.color}">${statusInfo.text} ${v.on ? `(${v.power}%)` : ''}</span>
+                            <button class="btn-danger text-xs" onclick="deleteDevice('${v.zoneId}', 'vacuum', '${v.id}')"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                    vacuumListContainer.appendChild(item);
+                });
+            } else {
+                 vacuumListContainer.innerHTML = `<p class="text-sm text-gray-500">${translate('devices_no_vacuums_found')}</p>`;
+            }
+
+             siteStatsContainer.innerHTML = '';
+            Object.keys(siteData).sort().forEach(siteName => {
+                const stats = siteData[siteName];
+                const sensorPerc = stats.totalSensors > 0 ? Math.round((stats.activeSensors / stats.totalSensors) * 100) : 0;
+                const vacuumPerc = stats.totalVacuums > 0 ? Math.round((stats.connectedVacuums / stats.totalVacuums) * 100) : 0;
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200';
+                card.innerHTML = `
+                    <h5 class="font-semibold text-gray-700 mb-3">${siteName}</h5>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm text-gray-600">${translate('devices_active_sensors')}</span>
+                        <span class="font-medium ${sensorPerc < 75 ? 'text-red-600' : 'text-green-600'}">${sensorPerc}% (${stats.activeSensors}/${stats.totalSensors})</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600">${translate('devices_connected_vacuums')}</span>
+                        <span class="font-medium ${vacuumPerc < 75 ? 'text-red-600' : 'text-green-600'}">${vacuumPerc}% (${stats.connectedVacuums}/${stats.totalVacuums})</span>
+                    </div>
+                `;
+                siteStatsContainer.appendChild(card);
+            });
+             if (Object.keys(siteData).length === 0) {
+                 siteStatsContainer.innerHTML = `<p class="text-sm text-gray-500">${translate('devices_no_sites_found')}</p>`;
+             }
+        }
+        function updateActiveDevicesList() {
+            if (!activeSensorList || !activeVacuumList) return; // Safety check
+
+            activeSensorList.innerHTML = '';
+            activeVacuumList.innerHTML = '';
+            let activeSensorsFound = 0;
+            let activeVacuumsFound = 0;
+
+            const sortedZoneIds = Object.keys(zonesData).sort();
+            sortedZoneIds.forEach(zoneId => {
+                const zone = zonesData[zoneId];
+
+                // Lister les capteurs normaux
+                zone.sensors?.forEach(s => {
+                    if (s.status === 'normal') {
+                        activeSensorsFound++;
+                        const statusInfo = getSensorOverallStatus([{status: s.status}]); // Pour la couleur/icône
+                        const typeInfo = getSensorTypeInfo(s.type);
+                        const item = document.createElement('div');
+                        item.className = 'flex items-center justify-between p-2 border-b border-gray-100';
+                        item.innerHTML = `
+                            <div class="flex items-center">
+                                <i class="fas ${typeInfo.icon} mr-3 ${statusInfo.color}"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">${s.id}</p>
+                                    <p class="text-xs text-gray-500">${translate(typeInfo.nameKey)} - ${zone.name} (${zone.site})</p>
+                                </div>
+                            </div>
+                            <span class="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">${statusInfo.text} (${s.value.toFixed(2)} ${typeInfo.unit})</span>
+                        `;
+                        activeSensorList.appendChild(item);
+                    }
+                });
+
+                // Lister les aspirateurs connectés
+                zone.vacuums?.forEach(v => {
+                    if (v.connected) {
+                        activeVacuumsFound++;
+                        const statusInfo = getVacuumOverallStatus([{...v}]); // Pour la couleur/icône
+                        const item = document.createElement('div');
+                        item.className = 'flex items-center justify-between p-2 border-b border-gray-100';
+                        item.innerHTML = `
+                            <div class="flex items-center">
+                                <i class="fas fa-fan mr-3 ${statusInfo.color}"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">${v.id}</p>
+                                    <p class="text-xs text-gray-500">${zone.name} (${zone.site})</p>
+                                </div>
+                            </div>
+                            <span class="text-xs font-medium px-2 py-1 rounded-full ${statusInfo.indicator === 'error' ? 'bg-red-100 text-red-700' : (statusInfo.on ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700')}">${statusInfo.text} ${v.on ? `(${v.power}%)` : ''}</span>
+                        `;
+                        activeVacuumList.appendChild(item);
+                    }
+                });
+            });
+
+            // Messages si aucune appareil actif/connecté
+            if (activeSensorsFound === 0) {
+                activeSensorList.innerHTML = `<p class="text-sm text-gray-500">${translate('active_devices_no_operational_sensors')}</p>`;
+            }
+            if (activeVacuumsFound === 0) {
+                activeVacuumList.innerHTML = `<p class="text-sm text-gray-500">${translate('active_devices_no_connected_vacuums')}</p>`;
+            }
+        }
+        function addHistoryEntry(zoneId, level, actionKey, statusTextKey, replacements = {}) {
+            const action = translate(actionKey, replacements);
+            const statusText = translate(statusTextKey);
+            const entry = {
+                time: new Date(), zoneId: zoneId, zoneName: zonesData[zoneId]?.name || zoneId,
+                level: level, action: action, statusText: statusText
+            };
+            history.unshift(entry); // Add to the beginning
+            if (history.length > 100) history.pop(); // Limit history size
+        }
+        function renderHistoryChart() {
+            const ctx = document.getElementById('historyChartCanvas')?.getContext('2d');
+            const container = document.getElementById('historyChartContainer');
+            if (!ctx || !container) return;
+
+            if (historyChart) {
+                historyChart.destroy();
+            }
+
+            // Filter for entries that have a dust level and reverse for chronological order
+            const chartHistory = [...history].reverse().filter(entry => entry.level !== null);
+
+            if (chartHistory.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = 'block';
+
+            const dataByZone = {};
+            chartHistory.forEach(entry => {
+                if (!dataByZone[entry.zoneId]) {
+                    dataByZone[entry.zoneId] = {
+                        name: entry.zoneName,
+                        data: []
+                    };
+                }
+                dataByZone[entry.zoneId].data.push({
+                    x: entry.time,
+                    y: entry.level
+                });
+            });
+
+            const datasets = Object.keys(dataByZone).map((zoneId, index) => {
+                const zoneInfo = dataByZone[zoneId];
+                const color = getChartColor(index);
+                return {
+                    label: zoneInfo.name,
+                    data: zoneInfo.data,
+                    borderColor: color,
+                    backgroundColor: `${color}33`, // Semi-transparent
+                    fill: false,
+                    tension: 0.2,
+                    pointRadius: 2,
+                    borderWidth: 2
+                };
+            });
+
+            historyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: translate('history_chart_title')
+                        },
+                        legend: {
+                            position: 'top',
+                        },
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                tooltipFormat: 'PPpp', // Use date-fns format for detailed tooltips
+                                unit: 'minute'
+                            },
+                            title: {
+                                display: true,
+                                text: translate('history_chart_xaxis_title')
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: translate('history_chart_yaxis_title')
+                            },
+                            beginAtZero: true
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                }
+            });
+        }
+        function updateHistoryTable() {
+            if (history.length === 0) {
+                noHistoryRow.style.display = 'table-row';
+                historyTableBody.innerHTML = ''; historyTableBody.appendChild(noHistoryRow); return;
+            }
+            noHistoryRow.style.display = 'none';
+            historyTableBody.innerHTML = '';
+            history.slice(0, 30).forEach(entry => { // Show only the last 30 entries for performance
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${getDateTimeString(entry.time)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${entry.zoneName}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${entry.level !== null ? entry.level.toFixed(2) + ' mg/m³' : '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${entry.action || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${entry.statusText || '-'}</td>
+                `;
+                historyTableBody.appendChild(row);
+            });
+        }
+        function addAlert(zoneId, level, actionKey, replacements = {}) {
+            const zone = zonesData[zoneId];
+            if (!zone) return; // Safety check if zone was deleted
+            const status = getZoneOverallStatus(zone);
+            const time = new Date();
+            const action = translate(actionKey, replacements);
+
+            const newAlert = {
+                id: Date.now(), 
+                zoneId, 
+                zoneName: zone.name, 
+                level,
+                statusTextKey: status.textKey, // Store the key for translation later
+                indicator: status.indicator,
+                bgColor: status.bgColor, 
+                iconColor: status.iconColor,
+                time, 
+                action, 
+                read: false,
+                actionKey: actionKey, // Store for the modal
+                actionReplacements: replacements // Store for the modal
+            };
+            alerts.unshift(newAlert);
+            if (alerts.length > 50) alerts.pop(); // Limit alerts size
+
+            updateAlertsUI(); // Update dropdown and potentially cards
+            updateOverview(); // Update overview counts
+
+            notificationBadge.classList.remove('hidden');
+            notificationsButton.querySelector('i').classList.add('animate-pulse');
+            setTimeout(() => notificationsButton.querySelector('i').classList.remove('animate-pulse'), 2000);
+            
+            playAlertSound(status.indicator);
+            // Log alert to history using keys
+            addHistoryEntry(zoneId, level, 'history_log_alert', status.textKey, { status: status.text.toUpperCase(), action: action });
+        }
+        function updateAlertsUI() {
+            updateAlertsTable(); // Update dashboard table
+            updateNotificationDropdown(); // Update dropdown
+            // updateAlertCards is called by updateAllUI if the tab is active
+             const currentTab = document.querySelector('.tab-content.active')?.id;
+             if (currentTab === 'alerts') {
+                 updateAlertCards();
+             }
+        }
+        function updateAlertsTable() {
+            const recentAlerts = alerts.slice(0, 5);
+            if (recentAlerts.length === 0) {
+                noAlertsRow.style.display = 'table-row';
+                alertsTableBody.innerHTML = ''; 
+                alertsTableBody.appendChild(noAlertsRow); 
+                return;
+            }
+            noAlertsRow.style.display = 'none';
+            alertsTableBody.innerHTML = '';
+            recentAlerts.forEach(alert => {
+                const row = document.createElement('tr');
+                row.className = `hover:bg-gray-50 cursor-pointer ${alert.read ? 'opacity-70' : ''}`;
+                row.onclick = () => showAlerteDetails(alert.id);
+                // Translate status text here
+                const statusText = translate(alert.statusTextKey);
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10 rounded-full ${alert.bgColor} flex items-center justify-center ${alert.iconColor}">
+                                <span>${alert.zoneId}</span>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">${alert.zoneName}</div>
+                                <div class="text-sm text-gray-500">${translate('main_sensor')}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${alert.bgColor} ${alert.iconColor}">${alert.level.toFixed(2)} mg/m³</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatTime(alert.time)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${alert.action}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${alert.read ? 'bg-gray-100 text-gray-800' : 'bg-yellow-100 text-yellow-800'}">${alert.read ? translate('status_read') : translate('status_in_progress')}</span>
+                    </td>
+                `;
+                alertsTableBody.appendChild(row);
+            });
+        }
+        function updateNotificationDropdown() {
+            const unreadAlerts = alerts.filter(a => !a.read).slice(0, 5);
+            if (unreadAlerts.length === 0) {
+                notificationList.innerHTML = `<p class="px-4 py-3 text-sm text-gray-500">${translate('notifications_none')}</p>`;
+                notificationBadge.classList.add('hidden'); return;
+            }
+            notificationList.innerHTML = '';
+            unreadAlerts.forEach(alert => {
+                const item = document.createElement('a');
+                item.href = '#';
+                item.className = 'block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100';
+                item.onclick = (e) => { e.preventDefault(); showAlerteDetails(alert.id); };
+                // Translate status text here
+                const statusText = translate(alert.statusTextKey);
+                item.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mt-1">
+                            <span class="status-indicator status-${alert.indicator}"></span>
+                        </div>
+                        <div class="ml-2">
+                            <p class="font-medium">${statusText} ${translate('zone')} ${alert.zoneId}</p>
+                            <p class="text-xs text-gray-500">${alert.level.toFixed(2)} mg/m³ - ${formatTime(alert.time)}</p>
+                        </div>
+                    </div>
+                `;
+                notificationList.appendChild(item);
+            });
+            notificationBadge.classList.remove('hidden');
+        }
+        function updateAlertCards() {
+            if (alerts.length === 0) {
+                alertCardsContainer.innerHTML = '';
+                noAlertsMessage.classList.remove('hidden'); return;
+            }
+            noAlertsMessage.classList.add('hidden');
+            alertCardsContainer.innerHTML = '';
+            alerts.forEach(alert => {
+                const card = document.createElement('div');
+                const borderColor = alert.indicator === 'danger' ? 'border-red-200' : (alert.indicator === 'warning' ? 'border-yellow-200' : 'border-blue-200');
+                const timeColor = alert.indicator === 'danger' ? 'text-red-600' : (alert.indicator === 'warning' ? 'text-yellow-600' : 'text-blue-600');
+                // Translate status text here
+                const statusText = translate(alert.statusTextKey);
+
+                card.className = `border ${borderColor} rounded-lg overflow-hidden ${alert.read ? 'opacity-70' : ''}`;
+                card.innerHTML = `
+                    <div class="${alert.bgColor} px-4 py-3 flex justify-between items-center">
+                        <div class="flex items-center">
+                            <span class="status-indicator status-${alert.indicator}"></span>
+                            <span class="ml-2 font-medium ${alert.iconColor}">${statusText}</span>
+                        </div>
+                        <span class="text-xs ${timeColor}">${getDateTimeString(alert.time)}</span>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                            <div class="mb-3 md:mb-0">
+                                <h4 class="font-medium text-gray-800">${translate('level_detected', {level: alert.level.toFixed(2)})}</h4>
+                                <p class="text-sm text-gray-600">${translate('zone')} ${alert.zoneName} (${alert.zoneId}) - ${translate('table_header_action')}: ${alert.action}</p>
+                            </div>
+                            <div class="flex space-x-2 flex-shrink-0 mt-2 md:mt-0">
+                                <button onclick="showAlerteDetails(${alert.id})" class="btn btn-secondary text-xs">${translate('alert_details_button')}</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                alertCardsContainer.appendChild(card);
+            });
+        }
+        function markAlertAsRead(alertId) {
+            const alert = alerts.find(a => a.id === alertId);
+            if (alert) {
+                alert.read = true;
+                updateAlertsUI(); // Update tables and dropdown
+                closeAlertModal(); // Close modal if open
+                updateOverview(); // Update overview counts
+            }
+        }
+        function updateOverview() {
+            const zoneCount = Object.keys(zonesData).length;
+            let totalSensors = 0, activeSensors = 0, errorSensors = 0;
+            let totalVacuums = 0, connectedVacuums = 0, onVacuums = 0;
+
+            Object.values(zonesData).forEach(zone => {
+                zone.sensors?.forEach(s => {
+                    totalSensors++;
+                    if (s.status === 'normal') activeSensors++;
+                    if (s.status === 'error') errorSensors++;
+                });
+                 zone.vacuums?.forEach(v => {
+                    totalVacuums++;
+                    if (v.connected) connectedVacuums++;
+                    if (v.on) onVacuums++;
+                });
+            });
+
+            const sensorPerc = totalSensors > 0 ? Math.round((activeSensors / totalSensors) * 100) : 0;
+            const vacuumPerc = totalVacuums > 0 ? Math.round((connectedVacuums / totalVacuums) * 100) : 0;
+            const sensorOverallStatus = errorSensors > 0 ? 'danger' : (activeSensors < totalSensors ? 'warning' : 'normal');
+            const vacuumOverallStatus = connectedVacuums < totalVacuums ? 'danger' : 'normal';
+
+            const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+            const recentAlerts = alerts.filter(a => a.time.getTime() > twentyFourHoursAgo);
+            const criticalAlertsRecent = recentAlerts.filter(a => a.indicator === 'danger').length;
+            // Determine the correct translation key for critical alerts count
+            const criticalTextKey = criticalAlertsRecent > 1 ? 'overview_alerts_critical_plural' : 'overview_alerts_critical_single';
+
+            overviewZonesCount.textContent = zoneCount;
+            overviewSensorsStatus.textContent = `${sensorPerc}%`;
+            overviewSensorsIndicator.innerHTML = `<span class="status-indicator status-${sensorOverallStatus}"></span> ${activeSensors}/${totalSensors}`;
+            overviewVacuumsStatus.textContent = `${vacuumPerc}%`;
+            overviewVacuumsIndicator.innerHTML = `<span class="status-indicator status-${vacuumOverallStatus}"></span> ${connectedVacuums}/${totalVacuums}`;
+            overviewAlertsCount.textContent = recentAlerts.length;
+            // Update the indicator text using translations
+            overviewAlertsIndicator.innerHTML = `<span class="status-indicator status-${criticalAlertsRecent > 0 ? 'danger' : 'normal'}"></span> ${criticalAlertsRecent > 0 ? `${criticalAlertsRecent} ${translate(criticalTextKey)}` : translate('overview_alerts_none_critical')}`;
+        }
+
+        function generateAIInsight() {
+            const dynamicInsights = [];
+
+            // Check equipment status in all zones
+            Object.keys(zonesData).forEach(zoneId => {
+                const zone = zonesData[zoneId];
+
+                // Check Sensors
+                zone.sensors?.forEach(s => {
+                    if (s.status === 'error') {
+                        dynamicInsights.push(translate('ai_insight_sensor_error', { sensorId: s.id, zoneName: zone.name }));
+                    } else if (s.status === 'maintenance') {
+                        dynamicInsights.push(translate('ai_insight_sensor_maintenance', { sensorId: s.id, zoneName: zone.name }));
+                    }
+                });
+
+                // Check Vacuums
+                zone.vacuums?.forEach(v => {
+                    if (!v.connected) {
+                        dynamicInsights.push(translate('ai_insight_vacuum_disconnected', { vacuumId: v.id, zoneName: zone.name }));
+                    }
+                });
+            });
+
+            // Display insights
+            aiInsightsContainer.innerHTML = ''; // Clear previous insights
+            if (dynamicInsights.length > 0) {
+                const insightToShow = dynamicInsights[0]; // Simple: show the first one
+                const p = document.createElement('p');
+                p.innerHTML = insightToShow;
+                aiInsightsContainer.appendChild(p);
+            } else {
+                const p = document.createElement('p');
+                p.innerHTML = translate('ai_insight_system_ok');
+                aiInsightsContainer.appendChild(p);
+            }
+        }
+
+        // --- Alert Modal Functions ---
+        function playAlertSound(indicator) {
+            alarmSound.pause();
+            alarmSound.currentTime = 0;
+            if (indicator === 'danger') {
+                alarmSound.volume = 1.0;
+                alarmSound.play().catch(e => console.warn("Alarm sound error:", e));
+            } else if (indicator === 'warning') {
+                alarmSound.volume = 0.4;
+                alarmSound.play().catch(e => console.warn("Alarm sound error:", e));
+            }
+        }
+
+        function showAlerteDetails(alertId) {
+            const alert = alerts.find(a => a.id === alertId);
+            if (!alert) return;
+
+            alert.read = true;
+
+            const modalContent = document.getElementById('alertModalContent');
+            const statusText = translate(alert.statusTextKey);
+
+            // AI Analysis Text
+            let analysisText = '';
+            if (alert.indicator === 'danger') {
+                analysisText = translate('alert_modal_desc_danger', {
+                    level: alert.level.toFixed(2),
+                    zoneName: alert.zoneName,
+                    threshold: config.CRITICAL_THRESHOLD
+                });
+            } else { // warning
+                analysisText = translate('alert_modal_desc_warning', {
+                    level: alert.level.toFixed(2),
+                    zoneName: alert.zoneName,
+                    threshold: config.WARNING_THRESHOLD
+                });
+            }
+
+            // Corrective Action Text
+            let actionDesc = '';
+            if (alert.actionKey === 'history_log_vacuum_on_critical' || alert.actionKey === 'history_log_vacuum_on_warning') {
+                actionDesc = translate('alert_modal_action_desc', { power: alert.actionReplacements.power });
+            } else if (alert.actionKey === 'history_log_vacuum_power_up_warning') {
+                actionDesc = translate('alert_modal_action_desc_increase', { power: alert.actionReplacements.power });
+            } else {
+                actionDesc = alert.action; // Fallback to the original action text
+            }
+
+            modalContent.innerHTML = `
+                <div class="p-5 border-b border-gray-200 flex justify-between items-center ${alert.bgColor}">
+                    <h3 class="text-lg font-semibold ${alert.iconColor} flex items-center">
+                        <span class="status-indicator in-modal status-${alert.indicator}"></span>
+                        ${translate('alert_modal_title')}
+                    </h3>
+                    <button onclick="closeAlertModal()" class="text-gray-600 hover:text-gray-900 text-2xl leading-none">&times;</button>
+                </div>
+                <div class="p-6 space-y-5">
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-1">${translate('alert_modal_analysis')}</h4>
+                        <p class="text-gray-600">${analysisText}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-1">${translate('alert_modal_action')}</h4>
+                        <p class="text-gray-600">${actionDesc}</p>
+                    </div>
+                    <div class="text-sm text-gray-500 pt-3 border-t border-gray-200">
+                        ${translate('zone')}: ${alert.zoneName} | ${getDateTimeString(alert.time)}
+                    </div>
+                </div>
+                <div class="px-6 py-4 bg-gray-50 text-right rounded-b-lg">
+                    <button class="btn btn-primary" onclick="closeAlertModal()">${translate('button_close')}</button>
+                </div>
+            `;
+
+            const alertModal = document.getElementById('alertModal');
+            alertModal.classList.remove('hidden');
+            setTimeout(() => { alertModal.classList.add('open'); }, 10);
+
+            updateAlertsUI();
+            updateOverview();
+        }
+
+        function closeAlertModal() {
+            const alertModal = document.getElementById('alertModal');
+            alertModal.classList.remove('open');
+            setTimeout(() => {
+                alertModal.classList.add('hidden');
+            }, 300); // Match transition duration
+        }
+
+        // --- Logique de Simulation et Contrôle ---
+        function simulateSensorReadings() {
+            let needsUIUpdate = false;
+            Object.keys(zonesData).forEach(zoneId => {
+                const zone = zonesData[zoneId];
+                const oldLevel = zone.dustLevel;
+                let zoneNeedsUpdate = false;
+
+                // Simulate sensor status and value changes
+                zone.sensors?.forEach(sensor => {
+                    const oldStatus = sensor.status;
+                    const oldValue = sensor.value;
+                    
+                    const rand = Math.random();
+                    if (rand < 0.002 && sensor.status !== 'error') { sensor.status = 'error'; zoneNeedsUpdate = true; }
+                    else if (rand < 0.005 && sensor.status === 'normal') { sensor.status = 'maintenance'; zoneNeedsUpdate = true; }
+                    else if (sensor.status !== 'normal' && rand < 0.1) { sensor.status = 'normal'; zoneNeedsUpdate = true; }
+
+                    // Simulate value changes based on type
+                    switch (sensor.type) {
+                        case 'poussière':
+                            sensor.value = zone.dustLevel;
+                            break;
+                        case 'pression':
+                            sensor.value += (Math.random() - 0.5) * 0.05;
+                            sensor.value = Math.max(0.8, Math.min(1.2, sensor.value));
+                            break;
+                        case 'vibration':
+                            if (Math.random() < 0.05) {
+                                sensor.value = 0.5 + Math.random() * 0.5; // Spike
+                            } else {
+                                sensor.value = 0.1 + Math.random() * 0.1; // Normal vibration
+                            }
+                            break;
+                    }
+                    if (Math.abs(sensor.value - oldValue) > 0.01) zoneNeedsUpdate = true;
+                });
+
+                // Simulate vacuum connection changes
+                zone.vacuums?.forEach(vacuum => {
+                    const oldConnected = vacuum.connected;
+                    const rand = Math.random();
+                    if (rand < 0.005 && vacuum.connected) { vacuum.connected = false; zoneNeedsUpdate = true; }
+                    else if (!vacuum.connected && rand < 0.1) { vacuum.connected = true; zoneNeedsUpdate = true; }
+                });
+
+                // Simulate dust level changes
+                const sensorsOk = zone.sensors?.every(s => s.status === 'normal');
+                if (sensorsOk) {
+                    if (zone.manualCleaningActive) {
+                        const mainVacuum = zone.vacuums?.[0];
+                        if (mainVacuum?.on && mainVacuum?.connected) {
+                            zone.dustLevel -= 0.05 * (mainVacuum.power / 100);
+                            zone.dustLevel = Math.max(0, zone.dustLevel);
+                            zoneNeedsUpdate = true;
+                        }
+                    }
+                    else {
+                        const anyVacuumOn = zone.vacuums?.some(v => v.on && v.connected);
+                        const activeVacuums = zone.vacuums?.filter(v => v.on && v.connected) || [];
+                        const avgPower = activeVacuums.reduce((sum, v) => sum + v.power, 0) / (activeVacuums.length || 1);
+
+                        let change = (Math.random() - 0.48) * 0.1;
+                        if (anyVacuumOn) change -= 0.05 * (avgPower / 100);
+                        else if (zone.dustLevel < config.WARNING_THRESHOLD * 0.8) change += 0.015;
+
+                        zone.dustLevel = Math.max(0, zone.dustLevel + change);
+                        zone.dustLevel = Math.min(config.MAX_DUST_LEVEL * 1.2, zone.dustLevel);
+                        if (Math.abs(zone.dustLevel - oldLevel) > 0.01) zoneNeedsUpdate = true;
+                    }
+                } else {
+                     if (Math.random() < 0.1 && !zone.manualCleaningActive) {
+                         zone.dustLevel += 0.01;
+                         zone.dustLevel = Math.min(config.MAX_DUST_LEVEL * 1.2, zone.dustLevel);
+                         zoneNeedsUpdate = true;
+                     }
+                }
+                 if (zoneNeedsUpdate) needsUIUpdate = true;
+            });
+            return needsUIUpdate;
+        }
+        function controlVacuums() {
+            let stateChanged = false;
+            Object.keys(zonesData).forEach(zoneId => {
+                const zone = zonesData[zoneId];
+                const sensorsOk = zone.sensors?.every(s => s.status === 'normal');
+
+                zone.vacuums?.forEach(vacuum => {
+                    const oldVacuumState = vacuum.on;
+                    const oldVacuumPower = vacuum.power;
+                    let actionKey = null;
+                    let actionReplacements = {};
+
+                    if (!vacuum.connected || !sensorsOk) {
+                        if (vacuum.on) {
+                            vacuum.on = false; vacuum.power = 0; stateChanged = true;
+                            zone.manualCleaningActive = false;
+                            console.log(`AUTO/MANUAL STOP: Vacuum ${vacuum.id} OFF (Conn/Sensor Issue)`);
+                            actionKey = 'history_log_vacuum_off_conn_sensor';
+                        }
+                    }
+                    else if (zone.manualCleaningActive) {
+                        if (zone.dustLevel < config.WARNING_THRESHOLD * 0.8) {
+                            vacuum.on = false; vacuum.power = 0; stateChanged = true;
+                            zone.manualCleaningActive = false;
+                            console.log(`MANUAL STOP: Vacuum ${vacuum.id} OFF (Level OK after manual clean)`);
+                            actionKey = 'history_log_manual_stop';
+                        }
+                    }
+                    else if (currentMode === 'auto') {
+                        const status = getZoneOverallStatus(zone);
+                        if (status.indicator === 'danger') {
+                            if (!vacuum.on || vacuum.power < config.VACUUM_CRITICAL_POWER) {
+                                vacuum.on = true; vacuum.power = config.VACUUM_CRITICAL_POWER;
+                                actionKey = 'history_log_vacuum_on_critical';
+                                actionReplacements = { power: config.VACUUM_CRITICAL_POWER };
+                            }
+                        }
+                        else if (status.indicator === 'warning') {
+                             if (!vacuum.on) {
+                                vacuum.on = true; vacuum.power = config.VACUUM_ACTIVATION_POWER;
+                                actionKey = 'history_log_vacuum_on_warning';
+                                actionReplacements = { power: config.VACUUM_ACTIVATION_POWER };
+                            } else if (vacuum.power < config.VACUUM_ACTIVATION_POWER) {
+                                 vacuum.power = config.VACUUM_ACTIVATION_POWER;
+                                 actionKey = 'history_log_vacuum_power_up_warning';
+                                 actionReplacements = { power: config.VACUUM_ACTIVATION_POWER };
+                            }
+                        }
+                        else {
+                            if (vacuum.on) {
+                                const recentlyCleaned = zone.lastVacuumRun && (Date.now() - zone.lastVacuumRun < config.RECENTLY_CLEANED_THRESHOLD / 2);
+                                if (zone.dustLevel < config.WARNING_THRESHOLD * 0.8 && !recentlyCleaned) {
+                                    vacuum.on = false; vacuum.power = 0;
+                                    actionKey = 'history_log_vacuum_off_normal';
+                                }
+                            }
+                        }
+                    }
+
+                    if (vacuum.on !== oldVacuumState || vacuum.power !== oldVacuumPower) {
+                        stateChanged = true;
+                        if (vacuum.on && !oldVacuumState) zone.lastVacuumRun = Date.now();
+                        console.log(`CONTROL: Vacuum ${vacuum.id} -> On: ${vacuum.on}, Power: ${vacuum.power}% (Action Key: ${actionKey})`);
+                        if (actionKey) {
+                            addHistoryEntry(zoneId, zone.dustLevel, actionKey, getZoneOverallStatus(zone).textKey, actionReplacements);
+                        }
+                    }
+
+                    if (currentMode === 'auto' && actionKey && (getZoneOverallStatus(zone).indicator === 'danger' || getZoneOverallStatus(zone).indicator === 'warning')) {
+                        const lastUnreadAlert = alerts.find(a => a.zoneId === zoneId && !a.read);
+                        if (!lastUnreadAlert || (lastUnreadAlert.indicator !== getZoneOverallStatus(zone).indicator) || (zone.dustLevel > lastUnreadAlert.level + 0.05)) {
+                            addAlert(zoneId, zone.dustLevel, actionKey, actionReplacements);
+                        }
+                    }
+                });
+            });
+            return stateChanged;
+        }
+        function runSimulationCycle() {
+            const readingsChanged = simulateSensorReadings();
+            const controlChanged = controlVacuums();
+            if (readingsChanged || controlChanged) {
+                updateAllUI(); // Update everything if state changed
+            } else if (carouselTimer) {
+                 // If only the carousel is running, just update the main widget
+                 updateMonitoringWidget();
+            }
+        }
+
+        // --- Mise à jour UI Globale ---
+        function updateAllUI() {
+            updateOverview();
+
+            const currentTab = document.querySelector('.tab-content.active')?.id;
+            if (currentTab === 'dashboard') { updateZoneList(); updateAlertsTable(); }
+            else if (currentTab === 'zones') { updateZoneManagementList(); }
+            else if (currentTab === 'devices') { updateDeviceLists(); }
+            else if (currentTab === 'activeDevices') { updateActiveDevicesList(); }
+            else if (currentTab === 'alerts') { updateAlertCards(); }
+            else if (currentTab === 'history') { updateHistoryTable(); renderHistoryChart(); }
+            else if (currentTab === 'users') { renderUserList(); }
+
+            updateMonitoringWidget();
+        }
+
+        // --- Fonctions Carrousel ---
+        function startCarousel() {
+            stopCarousel();
+            const zoneIds = Object.keys(zonesData).sort();
+            if (zoneIds.length === 0) {
+                selectedZoneId = null;
+                updateMonitoringWidget();
+                return;
+            }
+            if (currentCarouselZoneIndex >= zoneIds.length || currentCarouselZoneIndex < 0) {
+                currentCarouselZoneIndex = 0;
+            }
+            selectedZoneId = zoneIds[currentCarouselZoneIndex];
+            updateMonitoringWidget();
+
+            if (zoneIds.length > 1) {
+                carouselTimer = setInterval(() => {
+                    currentCarouselZoneIndex = (currentCarouselZoneIndex + 1) % zoneIds.length;
+                    selectedZoneId = zoneIds[currentCarouselZoneIndex];
+                    updateMonitoringWidget();
+                }, config.CAROUSEL_INTERVAL_SECONDS * 1000);
+                console.log(`Carousel started with interval ${config.CAROUSEL_INTERVAL_SECONDS}s.`);
+            } else {
+                console.log(`Carousel: Only one zone (${selectedZoneId}), no interval needed.`);
+            }
+        }
+        function stopCarousel() {
+            if (carouselTimer) {
+                clearInterval(carouselTimer);
+                carouselTimer = null;
+                console.log("Carousel stopped.");
+            }
+        }
+        function restartCarousel() {
+            console.log("Restarting carousel...");
+            startCarousel();
+        }
+
+        // --- Gestion des Événements ---
+        mobileMenuButton.addEventListener('click', () => { mobileMenu.classList.add('open'); overlay.classList.remove('hidden'); });
+        closeMobileMenu.addEventListener('click', () => { mobileMenu.classList.remove('open'); overlay.classList.add('hidden'); });
+        document.getElementById('alertModalBackdrop').addEventListener('click', closeAlertModal);
+        overlay.addEventListener('click', () => { mobileMenu.classList.remove('open'); overlay.classList.add('hidden'); });
+        notificationsButton.addEventListener('click', (e) => { e.stopPropagation(); notificationsDropdown.classList.toggle('hidden'); });
+        document.addEventListener('click', (e) => { if (!notificationsButton.contains(e.target) && !notificationsDropdown.contains(e.target)) { notificationsDropdown.classList.add('hidden'); } });
+        function showTab(tabId) {
+             const linkElement = document.querySelector(`.tab-link[data-tab="${tabId}"]`);
+             if (linkElement) {
+                 const titleKey = linkElement.dataset.translateKey;
+                 pageTitle.textContent = translate(titleKey);
+                 pageTitle.dataset.translateKey = titleKey;
+             }
+
+             document.querySelectorAll('.tab-link').forEach(l => {
+                 const isActive = l.dataset.tab === tabId;
+                 l.classList.toggle('bg-blue-50', isActive);
+                 l.classList.toggle('text-blue-600', isActive);
+                 l.classList.toggle('text-gray-700', !isActive);
+                 l.classList.toggle('hover:bg-blue-50', !isActive);
+             });
+
+             tabContents.forEach(content => content.classList.toggle('active', content.id === tabId));
+             mobileMenu.classList.remove('open'); overlay.classList.add('hidden');
+
+             if (tabId === 'dashboard') { updateZoneList(); updateAlertsTable(); }
+             else if (tabId === 'zones') { updateZoneManagementList(); }
+             else if (tabId === 'devices') { updateDeviceLists(); }
+             else if (tabId === 'activeDevices') { updateActiveDevicesList(); }
+             else if (tabId === 'alerts') { updateAlertCards(); }
+             else if (tabId === 'history') { updateHistoryTable(); renderHistoryChart(); }
+             else if (tabId === 'settings') { loadSettings(); }
+             else if (tabId === 'users') { renderUserList(); }
+        }
+        tabLinks.forEach(link => { link.addEventListener('click', (e) => { e.preventDefault(); showTab(link.dataset.tab); }); });
+        autoModeBtn.addEventListener('click', () => {
+            if (currentMode === 'auto') return;
+            currentMode = 'auto';
+            autoModeBtn.classList.replace('btn-inactive', 'btn-active');
+            manualModeBtn.classList.replace('btn-active', 'btn-inactive');
+            manualControlsContainer.classList.add('controls-disabled');
+            autoModeInfo.classList.remove('hidden'); manualModeInfo.classList.add('hidden');
+            Object.keys(zonesData).forEach(zoneId => { zonesData[zoneId].manualCleaningActive = false; });
+            updateManualControlsUI();
+            console.log("Mode Automatique activé");
+        });
+        manualModeBtn.addEventListener('click', () => {
+            if (currentMode === 'manual') return;
+            currentMode = 'manual';
+            manualModeBtn.classList.replace('btn-inactive', 'btn-active');
+            autoModeBtn.classList.replace('btn-active', 'btn-inactive');
+            manualControlsContainer.classList.remove('controls-disabled');
+            autoModeInfo.classList.add('hidden'); manualModeInfo.classList.remove('hidden');
+            updateManualControlsUI();
+            console.log("Mode Manuel activé");
+        });
+        manualCleanBtn.addEventListener('click', () => {
+            if (currentMode !== 'manual' || !selectedZoneId || !zonesData[selectedZoneId]) return;
+
+            const zone = zonesData[selectedZoneId];
+            const vacuum = zone.vacuums?.[0];
+            const sensorsOk = zone.sensors?.every(s => s.status === 'normal');
+
+            if (vacuum && vacuum.connected && sensorsOk && !zone.manualCleaningActive) {
+                zone.manualCleaningActive = true;
+                vacuum.on = true;
+                vacuum.power = config.VACUUM_ACTIVATION_POWER;
+                zone.lastVacuumRun = Date.now();
+                console.log(`MANUAL START: Vacuum ${vacuum.id} (Zone ${selectedZoneId}) activated manually.`);
+                addHistoryEntry(selectedZoneId, zone.dustLevel, 'history_log_manual_start', getZoneOverallStatus(zone).textKey);
+                updateMonitoringWidget();
+            } else {
+                console.warn("Cannot start manual cleaning. Check mode, connection, sensor status, or if already active.");
+                alert(translate('alert_manual_start_fail'));
+            }
+        });
+        function updateManualControlsUI() {
+            const zone = selectedZoneId ? zonesData[selectedZoneId] : null;
+            const vacuum = zone?.vacuums?.[0];
+            const sensorsOk = zone?.sensors?.every(s => s.status === 'normal');
+
+            const canStartManual = currentMode === 'manual' && zone && vacuum && vacuum.connected && sensorsOk && !zone.manualCleaningActive;
+            const buttonTextKey = zone?.manualCleaningActive ? 'button_manual_clean_in_progress' : (canStartManual ? 'button_start_manual_clean' : 'button_manual_clean_unavailable');
+            const buttonIconClass = zone?.manualCleaningActive ? 'fa-spinner fa-spin' : 'fa-play';
+
+            manualCleanBtn.disabled = !canStartManual;
+            manualCleanBtn.innerHTML = `<i class="fas ${buttonIconClass} mr-2"></i> <span>${translate(buttonTextKey)}</span>`;
+            manualCleanBtn.classList.toggle('btn-secondary', !zone?.manualCleaningActive);
+            manualCleanBtn.classList.toggle('btn-primary', !!zone?.manualCleaningActive);
+        }
+
+        // --- CRUD Simulation Functions ---
+        function addZone() {
+            const name = prompt(translate('prompt_zone_name'), `Zone ${nextZoneNum}`);
+            if (!name) return;
+            const site = prompt(translate('prompt_site_name'), "Nouveau Site");
+            if (!site) return;
+            const description = prompt(translate('prompt_zone_description'), translate('new_zone_default_desc'));
+
+            const newZoneId = `Z${nextZoneNum++}`;
+            zonesData[newZoneId] = {
+                site: site, name: name, description: description || translate('new_zone_default_desc'),
+                dustLevel: 0.0, lastVacuumRun: null, icon: 'fa-map-pin',
+                sensors: [], vacuums: [], manualCleaningActive: false
+            };
+            console.log(`SIMULATE ADD: Zone ${newZoneId} added.`);
+            updateAllUI();
+            restartCarousel();
+            showTab('zones');
+        }
+        function editZone(zoneId) {
+            if (!zonesData[zoneId]) return;
+            const zone = zonesData[zoneId];
+            let changed = false;
+
+            const newName = prompt(`${translate('prompt_edit_zone_name')} "${zone.name}":`, zone.name);
+            if (newName && newName !== zone.name) { zone.name = newName; changed = true; }
+
+             const newSite = prompt(`${translate('prompt_edit_site_name')} "${zone.name}" (${translate('current')}: ${zone.site}):`, zone.site);
+             if (newSite && newSite !== zone.site) { zone.site = newSite; changed = true; }
+
+             const newDesc = prompt(`${translate('prompt_edit_zone_description')} "${zone.name}":`, zone.description);
+             if (newDesc !== null && newDesc !== zone.description) { zone.description = newDesc; changed = true; }
+
+             if (changed) {
+                 console.log(`SIMULATE EDIT: Zone ${zoneId} updated.`);
+                 updateAllUI();
+                 if (selectedZoneId === zoneId) { updateMonitoringWidget(); }
+             }
+        }
+        function deleteZone(zoneId) {
+            if (!zonesData[zoneId]) return;
+            const zoneName = zonesData[zoneId].name;
+            if (confirm(`${translate('confirm_delete_zone')} "${zoneName}" (${zoneId}) ?`)) {
+                const isSelected = selectedZoneId === zoneId;
+                delete zonesData[zoneId];
+                console.log(`SIMULATE DELETE: Zone ${zoneId} deleted.`);
+
+                if (isSelected) {
+                    currentCarouselZoneIndex = 0;
+                    selectedZoneId = null;
+                } else {
+                    const sortedIds = Object.keys(zonesData).sort();
+                    const newIndex = sortedIds.indexOf(selectedZoneId);
+                    currentCarouselZoneIndex = (newIndex !== -1) ? newIndex : 0;
+                }
+
+                updateAllUI();
+                restartCarousel();
+            }
+        }
+        function addDevice(type) {
+            const targetZoneId = prompt(`${translate('prompt_add_device_zone_id')} ${type} (ex: B2, A1):`);
+            if (!targetZoneId || !zonesData[targetZoneId]) {
+                alert(translate('alert_invalid_zone_id'));
+                return;
+            }
+            addDeviceToZoneInternal(targetZoneId, type);
+            showTab('devices');
+        }
+         function addDeviceToZone(zoneId) {
+             if (!zonesData[zoneId]) return;
+             const typeChoice = prompt(`${translate('prompt_add_device_type')} ${zonesData[zoneId].name}? (sensor/vacuum)`, 'sensor');
+             if (!typeChoice || (typeChoice !== 'sensor' && typeChoice !== 'vacuum')) {
+                 alert(translate('alert_invalid_device_type'));
+                 return;
+             }
+             addDeviceToZoneInternal(zoneId, typeChoice.toLowerCase());
+         }
+         function addDeviceToZoneInternal(zoneId, type) {
+             const zone = zonesData[zoneId];
+             if (type === 'sensor') {
+                const validTypes = Object.keys(sensorTypeDetails).filter(k => k !== 'default').join(', ');
+                const sensorType = prompt(translate('prompt_add_sensor_type', { types: validTypes }), 'poussière');
+                if (!sensorType || !sensorTypeDetails[sensorType]) {
+                    alert(translate('alert_invalid_sensor_type', { types: validTypes }));
+                    return;
+                }
+                const newSensorId = `S-${zoneId}-${(zone.sensors?.length || 0) + 1}`;
+                if (!zone.sensors) zone.sensors = [];
+                zone.sensors.push({ id: newSensorId, type: sensorType, status: 'normal', value: 0 });
+                console.log(`SIMULATE ADD: Sensor ${newSensorId} (type: ${sensorType}) added to zone ${zoneId}.`);
+            } else if (type === 'vacuum') {
+                 const newVacuumId = `V-${zoneId}-${(zone.vacuums?.length || 0) + 1}`;
+                 if (!zone.vacuums) zone.vacuums = [];
+                 zone.vacuums.push({ id: newVacuumId, connected: true, on: false, power: 0 });
+                 console.log(`SIMULATE ADD: Vacuum ${newVacuumId} added to zone ${zoneId}.`);
+            }
+            updateAllUI();
+            if (selectedZoneId === zoneId) { updateMonitoringWidget(); }
+            const currentTab = document.querySelector('.tab-content.active')?.id;
+            if (currentTab === 'zones' || currentTab === 'devices') {
+                showTab(currentTab);
+            }
+         }
+        function deleteDevice(zoneId, type, deviceId) {
+            if (!zonesData[zoneId]) return;
+            const zone = zonesData[zoneId];
+            const deviceList = type === 'sensor' ? zone.sensors : zone.vacuums;
+            if (!deviceList) return;
+
+            const deviceIndex = deviceList.findIndex(d => d.id === deviceId);
+            if (deviceIndex === -1) return;
+
+            if (confirm(`${translate('confirm_delete_device')} "${deviceId}" ${translate('from_zone')} "${zone.name}" ?`)) {
+                deviceList.splice(deviceIndex, 1);
+                console.log(`SIMULATE DELETE: Device ${deviceId} deleted from zone ${zoneId}.`);
+                updateAllUI();
+                if (selectedZoneId === zoneId) { updateMonitoringWidget(); }
+                const currentTab = document.querySelector('.tab-content.active')?.id;
+                if (currentTab === 'zones' || currentTab === 'devices') {
+                    showTab(currentTab);
+                }
+            }
+        }
+
+        // --- Fonctions Settings ---
+        function loadSettings() {
+            document.getElementById('settingWarningThreshold').value = config.WARNING_THRESHOLD;
+            document.getElementById('settingCriticalThreshold').value = config.CRITICAL_THRESHOLD;
+            document.getElementById('settingMaxDust').value = config.MAX_DUST_LEVEL;
+            document.getElementById('settingCarouselInterval').value = config.CAROUSEL_INTERVAL_SECONDS;
+            console.log("Settings loaded into form.");
+        }
+        function saveSettings() {
+            const newWarning = parseFloat(document.getElementById('settingWarningThreshold').value);
+            const newCritical = parseFloat(document.getElementById('settingCriticalThreshold').value);
+            const newMaxDust = parseFloat(document.getElementById('settingMaxDust').value);
+            const newInterval = parseInt(document.getElementById('settingCarouselInterval').value);
+
+            if (!isNaN(newWarning) && newWarning > 0) config.WARNING_THRESHOLD = newWarning;
+            if (!isNaN(newCritical) && newCritical > config.WARNING_THRESHOLD) config.CRITICAL_THRESHOLD = newCritical;
+            if (!isNaN(newMaxDust) && newMaxDust > config.CRITICAL_THRESHOLD) config.MAX_DUST_LEVEL = newMaxDust;
+            if (!isNaN(newInterval) && newInterval >= 1) {
+                if (config.CAROUSEL_INTERVAL_SECONDS !== newInterval) {
+                    config.CAROUSEL_INTERVAL_SECONDS = newInterval;
+                    restartCarousel();
+                }
+            }
+
+            console.log("Settings saved:", config);
+            updateMonitoringWidget();
+            alert(translate('alert_save_success'));
+        }
+
+        // --- Fonction de Rapport d'Historique ---
+        function generateHistoryReport() {
+            if (history.length === 0) {
+                alert(translate('history_no_history'));
+                return;
+            }
+
+            const historyByZone = history.reduce((acc, entry) => {
+                if (!acc[entry.zoneName]) {
+                    acc[entry.zoneName] = [];
+                }
+                acc[entry.zoneName].push(entry);
+                return acc;
+            }, {});
+
+            const csvHeaders = [
+                `"${translate('history_header_datetime')}"`,
+                `"${translate('history_header_zone')}"`,
+                `"${translate('history_header_level')}"`,
+                `"${translate('history_header_action')}"`,
+                `"${translate('history_header_zone_status')}"`
+            ].join(',');
+
+            const escapeCsvField = (field) => {
+                const stringField = String(field ?? '');
+                if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+                    return `"${stringField.replace(/"/g, '""')}"`;
+                }
+                return stringField;
+            };
+
+            const csvRows = history.map(entry => {
+                const level = entry.level !== null ? entry.level.toFixed(2) + ' mg/m³' : '-';
+                return [
+                    getDateTimeString(entry.time),
+                    entry.zoneName,
+                    level,
+                    entry.action,
+                    entry.statusText
+                ].map(escapeCsvField).join(',');
+            });
+
+            const fullCsvContent = [csvHeaders, ...csvRows].join('\n');
+
+            let htmlContent = `
+                <!DOCTYPE html>
+                <html lang="${currentLanguage}">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>${translate('history_title')}</title>
+                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+                    <style>
+                        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; color: #333; background-color: #f9fafb; }
+                        .report-container { max-width: 1000px; margin: auto; background-color: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                        .report-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; margin-bottom: 2rem; }
+                        h1 { color: #2563eb; margin: 0; }
+                        h2 { color: #1f2937; margin-top: 2.5rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+                        th, td { border: 1px solid #d1d5db; padding: 0.75rem; text-align: left; }
+                        thead { background-color: #f3f4f6; font-weight: 600; }
+                        tbody tr:nth-child(odd) { background-color: #f9fafb; }
+                        .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.2s ease; background-color: #e5e7eb; color: #374151; border: 1px solid #d1d5db; text-decoration: none; }
+                        .btn:hover { background-color: #d1d5db; }
+                        .btn i { margin-right: 0.5rem; }
+                        @media print {
+                            body { padding: 0; background-color: white; }
+                            .report-container { max-width: 100%; box-shadow: none; border: none; padding: 0; }
+                            .report-header { display: block; text-align: center; }
+                            .btn { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="report-container">
+                        <div class="report-header">
+                            <h1>${translate('history_title')}</h1>
+                            <button class="btn" onclick="downloadCSV()"><i class="fas fa-file-csv"></i> ${translate('button_download_csv')}</button>
+                        </div>
+            `;
+
+            for (const zoneName in historyByZone) {
+                htmlContent += `<h2>${translate('zone')} ${zoneName}</h2>`;
+                htmlContent += `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>${translate('history_header_datetime')}</th>
+                                <th>${translate('history_header_level')}</th>
+                                <th>${translate('history_header_action')}</th>
+                                <th>${translate('history_header_zone_status')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                historyByZone[zoneName].forEach(entry => {
+                    const level = entry.level !== null ? entry.level.toFixed(2) + ' mg/m³' : '-';
+                    htmlContent += `
+                        <tr>
+                            <td>${getDateTimeString(entry.time)}</td>
+                            <td>${level}</td>
+                            <td>${entry.action || '-'}</td>
+                            <td>${entry.statusText || '-'}</td>
+                        </tr>
+                    `;
+                });
+                htmlContent += `</tbody></table>`;
+            }
+
+            htmlContent += `
+                    </div>
+                    <script>
+                        function downloadCSV() {
+                            const csvContent = \`${fullCsvContent}\`;
+                            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                            const link = document.createElement("a");
+                            const url = URL.createObjectURL(blob);
+                            link.setAttribute("href", url);
+                            link.setAttribute("download", "dustbuster_history.csv");
+                            link.style.visibility = 'hidden';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }
+                    <\/script>
+                </body></html>`;
+
+            const reportWindow = window.open('', '_blank');
+            reportWindow.document.write(htmlContent);
+            reportWindow.document.close();
+            console.log("History report generated.");
+        }
+
+        // --- Fonctions de Gestion des Utilisateurs ---
+        function saveUsers() {
+            localStorage.setItem('dustbuster_users', JSON.stringify(users));
+        }
+
+        function loadUsers() {
+            const storedUsers = localStorage.getItem('dustbuster_users');
+            if (storedUsers) {
+                users = JSON.parse(storedUsers);
+            } else {
+                users = [{
+                    id: Date.now(),
+                    name: 'Admin',
+                    email: 'admin@dustbuster.com',
+                    role: 'admin'
+                }];
+                saveUsers();
+            }
+            currentUser = users[0];
+        }
+
+        function updateUserProfileUI() {
+            if (!currentUser) return;
+            document.getElementById('profileNameSidebar').textContent = currentUser.name;
+            document.getElementById('profileEmailSidebar').textContent = currentUser.email;
+            document.getElementById('profileNameMobile').textContent = currentUser.name;
+            document.getElementById('profileEmailMobile').textContent = currentUser.email;
+            document.getElementById('profileNameNav').textContent = currentUser.name;
+        }
+
+        function renderUserList() {
+            userListContainer.innerHTML = '';
+            const table = document.createElement('table');
+            table.className = 'min-w-full divide-y divide-gray-200';
+            const thClasses = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+            
+            table.innerHTML = `
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="${thClasses}">${translate('table_header_user')}</th>
+                        <th class="${thClasses}">${translate('table_header_email')}</th>
+                        <th class="${thClasses}">${translate('table_header_role')}</th>
+                        <th class="${thClasses}">${translate('table_header_action')}</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                </tbody>
+            `;
+            const tbody = table.querySelector('tbody');
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                const roleText = user.role === 'admin' ? translate('user_role_admin') : translate('user_role_user');
+                const tdBaseClasses = 'px-6 py-4 whitespace-nowrap text-sm';
+
+                row.innerHTML = `
+                    <td class="${tdBaseClasses}">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center flex-shrink-0"><i class="fas fa-user text-lg"></i></div>
+                            <div class="ml-4">
+                                <div class="font-medium text-gray-900">${user.name}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="${tdBaseClasses} text-gray-500">${user.email}</td>
+                    <td class="${tdBaseClasses}">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+                            ${roleText}
+                        </span>
+                    </td>
+                    <td class="${tdBaseClasses} text-left">
+                        <button class="btn-danger" onclick="deleteUser(${user.id})">${translate('button_delete')}</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            userListContainer.appendChild(table);
+        }
+
+        function addUser() {
+            const name = prompt(translate('prompt_user_name'));
+            if (!name) return;
+            const email = prompt(translate('prompt_user_email'));
+            if (!email) return;
+            const role = prompt(translate('prompt_user_role'), 'user')?.toLowerCase();
+            if (role !== 'admin' && role !== 'user') return;
+
+            const newUser = {
+                id: Date.now(),
+                name: name,
+                email: email,
+                role: role
+            };
+            users.push(newUser);
+            saveUsers();
+            renderUserList();
+        }
+
+        function deleteUser(userId) {
+            const userIndex = users.findIndex(u => u.id === userId);
+            if (userIndex === -1) return;
+
+            if (users[userIndex] === currentUser) {
+                alert("You cannot delete the currently active user.");
+                return;
+            }
+
+            if (confirm(`${translate('confirm_delete_user')} ${users[userIndex].name}?`)) {
+                users.splice(userIndex, 1);
+                saveUsers();
+                renderUserList();
+            }
+        }
+
+        // --- Initialisation ---
+        function initializeDashboard() {
+            document.querySelectorAll('.label').forEach(label => label.classList.add('block', 'text-sm', 'font-medium', 'text-gray-700', 'mb-1'));
+            document.querySelectorAll('.input').forEach(input => input.classList.add('w-full', 'border', 'border-gray-300', 'rounded-md', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-blue-500', 'focus:border-blue-500'));
+            
+            function unlockAudio() {
+                alarmSound.play().then(() => {
+                    alarmSound.pause();
+                    alarmSound.currentTime = 0;
+                    console.log("Contexte audio déverrouillé. Les sons d'alerte sont activés.");
+                    document.body.removeEventListener('click', unlockAudio);
+                    document.body.removeEventListener('keydown', unlockAudio);
+                }).catch(error => {
+                    console.warn("Le déverrouillage audio a échoué, nouvelle tentative à la prochaine interaction.", error);
+                });
+            }
+            document.body.addEventListener('click', unlockAudio);
+            document.body.addEventListener('keydown', unlockAudio);
+
+            loadUsers();
+            updateUserProfileUI();
+            loadSettings();
+            setLanguage(currentLanguage);
+            updateAllUI();
+            startCarousel();
+
+            if (simulationTimer) clearInterval(simulationTimer);
+            simulationTimer = setInterval(runSimulationCycle, config.SIMULATION_INTERVAL);
+
+            if (aiInsightTimer) clearInterval(aiInsightTimer);
+            generateAIInsight();
+            aiInsightTimer = setInterval(generateAIInsight, config.AI_INSIGHT_INTERVAL);
+
+            console.log("Dustbuster IA v2.4 Initialized. Mode:", currentMode, "Language:", currentLanguage);
+        }
+
+        // --- Lancement ---
+        document.addEventListener('DOMContentLoaded', initializeDashboard);
+
+    </script>
+</body>
+</html>
